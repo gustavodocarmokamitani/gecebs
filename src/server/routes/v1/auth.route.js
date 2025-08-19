@@ -11,7 +11,7 @@ const prisma = new PrismaClient();
  */
 router.post('/register', async (req, res) => {
   try {
-    const { teamName, email, password, phone } = req.body;
+    const { name, email, password, phone } = req.body; // <-- AQUI: Mudei de teamName para name
 
     // Criptografar a senha
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -19,7 +19,7 @@ router.post('/register', async (req, res) => {
     // Passo 1: Criar o time
     const newTeam = await prisma.team.create({
       data: {
-        name: teamName,
+        name: name, // <-- AQUI: Agora a variável 'name' tem o valor correto
         email: email,
         password: hashedPassword,
         phone: phone,
@@ -28,7 +28,7 @@ router.post('/register', async (req, res) => {
 
     // Responder com o time e o usuário criados
     res.status(201).json({
-      message: 'Time cadastrados com sucesso!',
+      message: 'Time cadastrado com sucesso!',
       team: newTeam,
     });
   } catch (err) {
@@ -44,7 +44,9 @@ router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // Encontrar o usuário pelo nome de usuário
+    // AVISO: Seu endpoint de login está procurando por um 'user', mas o de registro
+    // está criando um 'team'. Você precisará ajustar isso. O login precisa
+    // procurar por um time ou criar um usuário durante o registro.
     const user = await prisma.user.findUnique({
       where: { username },
       include: { team: true },
