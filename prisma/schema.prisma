@@ -4,82 +4,140 @@ datasource db {
 }
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
+  provider = "prisma-client-js"
 }
 
-model Contact {
-  id        Int      @id @default(autoincrement())
-  firstName String
-  lastName  String
-  email     String   @unique
-  phone     String?
-  company   String?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relationships
-  tasks     Task[]
-  projects  ProjectMember[]
+// Modelo para a equipe
+model Team {
+  id           Int            @id @default(autoincrement())
+  name         String         @unique
+  email        String         @unique
+  password     String
+  phone        String?
+  image        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  users        User[]
+  categories   Category[]
+  payments     Payment[]
+  events       Event[]
 }
 
-model Task {
-  id          Int        @id @default(autoincrement())
-  title       String
-  description String?
-  status      TaskStatus @default(TODO)
-  priority    Priority   @default(MEDIUM)
-  dueDate     DateTime?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  // Relationships
-  assigneeId Int?
-  assignee   Contact? @relation(fields: [assigneeId], references: [id])
-  projectId  Int?
-  project    Project? @relation(fields: [projectId], references: [id])
+// Modelo para o usuário (Managers, Atletas)
+model User {
+  id           Int              @id @default(autoincrement())
+  username     String           @unique
+  password     String
+  role         String           // 'MANAGER' ou 'ATHLETE'
+  email        String?
+  
+  teamId       Int
+  team         Team             @relation(fields: [teamId], references: [id])
+  
+  athlete      Athlete?
+  payments     PaymentUser[]
+  confirmations ConfirmationUser[]
 }
 
-model Project {
-  id          Int      @id @default(autoincrement())
+// Modelo para os dados do atleta (relacionado a User)
+model Athlete {
+  id           Int               @id @default(autoincrement())
+  firstName    String
+  lastName     String
+  phone        String?
+  federationId String?
+  birthDate    DateTime
+  houseNumber  String?
+  
+  userId       Int               @unique
+  user         User              @relation(fields: [userId], references: [id])
+  
+  categories   CategoryAthlete[]
+}
+
+// Modelo para as categorias
+model Category {
+  id         Int        @id @default(autoincrement())
+  name       String
+  
+  teamId     Int
+  team       Team       @relation(fields: [teamId], references: [id])
+
+  athletes   CategoryAthlete[]
+  payments   Payment[]
+}
+
+// Tabela de junção para Atleta e Categoria (muitos para muitos)
+model CategoryAthlete {
+  athleteId  Int
+  athlete    Athlete    @relation(fields: [athleteId], references: [id])
+  categoryId Int
+  category   Category   @relation(fields: [categoryId], references: [id])
+
+  @@id([athleteId, categoryId])
+}
+
+// Tabela para pagamentos
+model Payment {
+  id         Int        @id @default(autoincrement())
+  name       String
+  value      Float
+  dueDate    DateTime
+  pixKey     String
+  
+  teamId     Int
+  team       Team       @relation(fields: [teamId], references: [id])
+
+  category   Category   @relation(fields: [categoryId], references: [id])
+  categoryId Int
+  
+  paidBy     PaymentUser[]
+}
+
+// Tabela de junção para Pagamento e User
+model PaymentUser {
+  paymentId Int
+  payment   Payment  @relation(fields: [paymentId], references: [id])
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  paidAt    DateTime?
+
+  @@id([paymentId, userId])
+}
+
+// Tabela para eventos (treinos, campeonatos, etc.)
+model Event {
+  id          Int            @id @default(autoincrement())
   name        String
   description String?
-  status      String   @default("active")
-  startDate   DateTime @default(now())
-  endDate     DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  date        DateTime
+  location    String?
+  type        String         // 'TRAINING' ou 'CHAMPIONSHIP'
+  
+  teamId      Int
+  team        Team           @relation(fields: [teamId], references: [id])
 
-  // Relationships
-  tasks   Task[]
-  members ProjectMember[]
+  confirmations Confirmation[]
 }
 
-model ProjectMember {
-  id        Int     @id @default(autoincrement())
-  role      String  @default("member")
-  joinedAt  DateTime @default(now())
-
-  // Relationships
-  contactId Int
-  contact   Contact @relation(fields: [contactId], references: [id])
-  projectId Int
-  project   Project @relation(fields: [projectId], references: [id])
-
-  @@unique([contactId, projectId])
+// Tabela para solicitações de confirmação
+model Confirmation {
+  id          Int          @id @default(autoincrement())
+  name        String
+  
+  eventId     Int
+  event       Event        @relation(fields: [eventId], references: [id])
+  
+  confirmedBy ConfirmationUser[]
 }
 
-enum TaskStatus {
-  TODO
-  IN_PROGRESS
-  REVIEW
-  DONE
-}
-
-enum Priority {
-  LOW
-  MEDIUM
-  HIGH
-  URGENT
+// Tabela de junção para Confirmação e User
+model ConfirmationUser {
+  confirmationId Int
+  confirmation   Confirmation @relation(fields: [confirmationId], references: [id])
+  userId         Int
+  user           User         @relation(fields: [userId], references: [id])
+  confirmedAt    DateTime?
+  
+  @@id([confirmationId, userId])
 }

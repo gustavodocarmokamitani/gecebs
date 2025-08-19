@@ -1,14 +1,15 @@
 import { Router } from 'express';
 import errorHandler from 'strong-error-handler';
-import contactRoutes from './contact.route.js';
-import taskRoutes from './task.route.js';
-import projectRoutes from './project.route.js';
+import authRoutes from './auth.route.js';
+import categoryRoutes from './category.route.js';
+import userRoutes from './user.route.js';
 
 const router = Router();
 
-router.use('/contact', contactRoutes);
-router.use('/task', taskRoutes);
-router.use('/project', projectRoutes);
+// Adicione a rota de autenticação
+router.use('/auth', authRoutes);
+router.use('/category', categoryRoutes);
+router.use('/user', userRoutes);
 
 /**
  * GET /health

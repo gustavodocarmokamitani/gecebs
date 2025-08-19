@@ -197,7 +197,7 @@ npm start            # Start production server
 
 - [ ] Update title and meta tags in `index.html`
 - [ ] Replace logo and favicon in `/public`
-- [ ] Modify theme in `src/client/theme/theme.js`
+- [ ] Modify theme in `src/client/theme/theme.ts`
 - [ ] Update Header component with your app name
 - [ ] Plan and implement your route structure
 

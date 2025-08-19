@@ -1,12 +1,10 @@
-import * as dotenv from 'dotenv';
+import 'dotenv/config';
 import path from 'path';
 import { default as cors, default as express } from 'express';
 import { errors } from 'celebrate';
 import http from 'http';
 import routes from './routes/v1/index.js';
 import { securityMiddleware, requestLogger } from './middleware/security.js';
-
-dotenv.config();
 
 const app = express();
 
