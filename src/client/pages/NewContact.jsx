@@ -1,17 +1,26 @@
-import React from "react";
-import { useTheme } from "@mui/material/styles";
-import makeStyles from "@mui/styles/makeStyles";
-import { TextField, Button, Typography, Grid, Box, Container, Card, CardContent } from "@mui/material";
-import { Formik, Field, ErrorMessage } from "formik";
-import * as Yup from "yup";
-import axios from "axios";
-import { toast } from "react-toastify";
-import { AccountCircle, Email, Person, PersonAdd, SaveAlt } from "@mui/icons-material";
+import React from 'react';
+import { useTheme } from '@mui/material/styles';
+import makeStyles from '@mui/styles/makeStyles';
+import {
+  TextField,
+  Button,
+  Typography,
+  Grid,
+  Box,
+  Container,
+  Card,
+  CardContent,
+} from '@mui/material';
+import { Formik, Field, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+import { AccountCircle, Email, Person, PersonAdd, SaveAlt } from '@mui/icons-material';
 
 const useStyles = makeStyles((theme) => ({
   errorMessage: {
     color: theme.palette.error.main,
-    fontSize: "0.75rem",
+    fontSize: '0.75rem',
     marginTop: theme.spacing(0.5),
     marginLeft: theme.spacing(1.5),
   },
@@ -22,24 +31,24 @@ const NewContact = () => {
   const classes = useStyles(); // Add this line to use the styles
 
   const ContactSchema = Yup.object().shape({
-    firstName: Yup.string().required("First name is required"),
-    lastName: Yup.string().required("Last name is required"),
-    email: Yup.string().email("Invalid email").required("Email is required"),
+    firstName: Yup.string().required('First name is required'),
+    lastName: Yup.string().required('Last name is required'),
+    email: Yup.string().email('Invalid email').required('Email is required'),
   });
 
   const handleContactSubmit = async (values, { resetForm }) => {
     try {
-      const response = await axios.post("/api/v1/contact/create", {
+      const response = await axios.post('/api/v1/contact', {
         firstName: values.firstName,
         lastName: values.lastName,
         email: values.email,
       });
 
-      toast.success("Contact created successfully");
+      toast.success('Contact created successfully');
       resetForm(); // Reset form after successful creation
     } catch (err) {
       console.error(err);
-      toast.error("An error occurred while creating the contact");
+      toast.error('An error occurred while creating the contact');
     }
   };
 
@@ -48,16 +57,16 @@ const NewContact = () => {
       <Card elevation={2} sx={{ borderRadius: 2 }}>
         <CardContent sx={{ p: 4 }}>
           <Box display="flex" alignItems="center" mb={4}>
-            <PersonAdd sx={{ fontSize: 32, color: "primary.main", mr: 2 }} />
+            <PersonAdd sx={{ fontSize: 32, color: 'primary.main', mr: 2 }} />
             <Typography variant="h4" component="h1" gutterBottom fontWeight="medium">
               New Contact
             </Typography>
           </Box>
           <Formik
             initialValues={{
-              firstName: "",
-              lastName: "",
-              email: "",
+              firstName: '',
+              lastName: '',
+              email: '',
             }}
             validationSchema={ContactSchema}
             onSubmit={handleContactSubmit}
@@ -74,10 +83,14 @@ const NewContact = () => {
                       fullWidth
                       variant="outlined"
                       InputProps={{
-                        startAdornment: <Person sx={{ mr: 1, color: "action.active" }} />,
+                        startAdornment: <Person sx={{ mr: 1, color: 'action.active' }} />,
                       }}
                     />
-                    <ErrorMessage className={classes.errorMessage} name="firstName" component="div" />
+                    <ErrorMessage
+                      className={classes.errorMessage}
+                      name="firstName"
+                      component="div"
+                    />
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <Field
@@ -88,10 +101,14 @@ const NewContact = () => {
                       fullWidth
                       variant="outlined"
                       InputProps={{
-                        startAdornment: <AccountCircle sx={{ mr: 1, color: "action.active" }} />,
+                        startAdornment: <AccountCircle sx={{ mr: 1, color: 'action.active' }} />,
                       }}
                     />
-                    <ErrorMessage className={classes.errorMessage} name="lastName" component="div" />
+                    <ErrorMessage
+                      className={classes.errorMessage}
+                      name="lastName"
+                      component="div"
+                    />
                   </Grid>
                   <Grid item xs={12}>
                     <Field
@@ -102,7 +119,7 @@ const NewContact = () => {
                       fullWidth
                       variant="outlined"
                       InputProps={{
-                        startAdornment: <Email sx={{ mr: 1, color: "action.active" }} />,
+                        startAdornment: <Email sx={{ mr: 1, color: 'action.active' }} />,
                       }}
                     />
                     <ErrorMessage className={classes.errorMessage} name="email" component="div" />
