@@ -26,7 +26,7 @@ const Register = () => {
   };
 
   return (
-    <AuthLayout title="Registrar Novo Time">
+    <AuthLayout page="Registre seu" title="Time">
       <form onSubmit={handleRegister}>
         <Grid container spacing={2}>
           <Grid size={12}>
@@ -41,62 +41,46 @@ const Register = () => {
             />
           </Grid>
           <Grid size={12}>
-            <Typography variant="body2" sx={{ mb: 0.5 }}>
-              E-mail do Time
-            </Typography>
-            <TextField
-              required
-              fullWidth
+            <CustomInput
+              label="E-mail"
+              placeholder="exemplo@time.com"
               id="email"
               name="email"
-              type="email"
+              required
               value={formData.email}
               onChange={handleInputChange}
-              placeholder="exemplo@time.com"
             />
           </Grid>
           <Grid size={12}>
-            <Typography variant="body2" sx={{ mb: 0.5 }}>
-              Senha
-            </Typography>
-            <TextField
-              required
-              fullWidth
-              name="password"
-              type="password"
+            <CustomInput
+              label="Senha"
+              placeholder="Mínimo de 8 caracteres"
               id="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              placeholder="Mínimo de 8 caracteres"
-            />
-          </Grid>
-          <Grid size={12}>
-            <Typography variant="body2" sx={{ mb: 0.5 }}>
-              Confimar Senha
-            </Typography>
-            <TextField
+              name="password"
               required
-              fullWidth
-              name="password-confirm"
-              type="password"
-              id="password-confirm"
               value={formData.password}
               onChange={handleInputChange}
-              placeholder="Mínimo de 8 caracteres"
             />
           </Grid>
           <Grid size={12}>
-            <Typography variant="body2" sx={{ mb: 0.5 }}>
-              Telefone (Opcional)
-            </Typography>
-            <TextField
-              fullWidth
+            <CustomInput
+              label="Confirmar Senha"
+              placeholder="Confirmar Senha"
+              id="password-confirm"
+              name="password-confirm"
+              required
+              value={formData.passwordConfirm}
+              onChange={handleInputChange}
+            />
+          </Grid>
+          <Grid size={12}>
+            <CustomInput
+              label="Telefone"
+              placeholder="(00) 00000-0000"
               id="phone"
               name="phone"
-              type="tel"
               value={formData.phone}
               onChange={handleInputChange}
-              placeholder="(00) 00000-0000"
             />
           </Grid>
           {/* <Grid size={12}>

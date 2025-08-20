@@ -1,56 +1,50 @@
 import React, { useState } from 'react';
-import { TextField, Button, Grid2 as Grid, Link as MuiLink, Typography } from '@mui/material';
+import { Button, Grid2 as Grid, Link as MuiLink } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import AuthLayout from '../components/auth/AuthLayout';
+import CustomInput from '../components/common/CustomInput';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
 
   const handleLogin = (event) => {
     event.preventDefault();
-    console.log('Login attempt:', { email, password });
-    // TODO: Adicionar lógica de autenticação aqui
+    console.log('Login attempt:', formData);
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
   };
 
   return (
-    <AuthLayout title="Entrar no Time">
+    <AuthLayout page="Entrar no" title="Time">
       <form onSubmit={handleLogin}>
         <Grid container spacing={2}>
           <Grid size={12}>
-            {/* Rótulo estático */}
-            <Typography variant="body2" sx={{ mb: 0.5 }}>
-              E-mail do Time
-            </Typography>
-            <TextField
-              required
-              fullWidth
+            <CustomInput
+              label="E-mail do Time"
+              placeholder="exemplo@time.com"
               id="email"
               name="email"
-              autoComplete="email"
-              autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              variant="outlined"
-              placeholder="Digite seu e-mail"
+              required
+              value={formData.email}
+              onChange={handleInputChange}
             />
           </Grid>
           <Grid size={12}>
-            {/* Rótulo estático */}
-            <Typography variant="body2" sx={{ mb: 0.5 }}>
-              Senha
-            </Typography>
-            <TextField
-              required
-              fullWidth
-              name="password"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              variant="outlined"
+            <CustomInput
+              label="Senha"
               placeholder="Digite sua senha"
+              id="password"
+              name="password"
+              type="password" // 🔑 senha escondida
+              required
+              value={formData.password}
+              onChange={handleInputChange}
             />
           </Grid>
           <Grid size={12}>
