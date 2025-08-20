@@ -110,25 +110,25 @@ model PaymentUser {
 }
 
 model Event {
-  id          Int            @id @default(autoincrement())
-  name        String
-  description String?
-  date        DateTime
-  location    String?
-  type        String         // 'TRAINING' ou 'CHAMPIONSHIP'
+  id             Int             @id @default(autoincrement())
+  name           String
+  description    String?
+  date           DateTime
+  location       String?
+  type           String          // 'TRAINING' ou 'CHAMPIONSHIP'
   
-  teamId      Int
-  team        Team           @relation(fields: [teamId], references: [id])
+  teamId         Int
+  team           Team            @relation(fields: [teamId], references: [id])
 
-  confirmations Confirmation[]
+  confirmations  Confirmation[]
 }
 
 model Confirmation {
-  id          Int          @id @default(autoincrement())
-  name        String
-  
+  id          Int           @id @default(autoincrement())
+  createdAt   DateTime      @default(now())
+
   eventId     Int
-  event       Event        @relation(fields: [eventId], references: [id])
+  event       Event         @relation(fields: [eventId], references: [id])
   
   confirmedBy ConfirmationUser[]
 }
@@ -136,13 +136,16 @@ model Confirmation {
 model ConfirmationUser {
   confirmationId Int
   confirmation   Confirmation @relation(fields: [confirmationId], references: [id])
+  
   userId         Int
   user           User         @relation(fields: [userId], references: [id])
-  confirmedAt    DateTime?
   
-  confirmedItems  ConfirmationItem[]
+  confirmedAt    DateTime?    // quando ele confirmou
+  status         Boolean      // true = confirmado, false = não
+  
+  confirmedItems ConfirmationItem[]
 
-  @@id([confirmationId, userId])
+  @@id([confirmationId, userId]) 
 }
 
 model ConfirmationItem {
