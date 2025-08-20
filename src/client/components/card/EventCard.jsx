@@ -28,7 +28,6 @@ const EventCard = ({ event }) => {
     setIsExpanded(!isExpanded);
   };
 
-
   return (
     <Card
       sx={{
@@ -77,11 +76,19 @@ const EventCard = ({ event }) => {
             component="div"
             fontWeight={300}
           >
-            {new Intl.DateTimeFormat("pt-BR").format(new Date(event.date))}
+            {new Intl.DateTimeFormat('pt-BR').format(new Date(event.date))}
           </Typography>
-          <Typography variant="p" color={theme.palette.text.secondary} component="div" fontWeight={300}>
+          <Typography
+            variant="p"
+            color={theme.palette.text.secondary}
+            component="div"
+            fontWeight={300}
+          >
             Atletas:
-            <span style={{ color: theme.palette.secondary.main, fontWeight: '600' }}> {event.confirmedAthletes.length + event.unconfirmedAthletes.length} </span>
+            <span style={{ color: theme.palette.secondary.main, fontWeight: '600' }}>
+              {' '}
+              {event.confirmedAthletes.length + event.unconfirmedAthletes.length}{' '}
+            </span>
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>

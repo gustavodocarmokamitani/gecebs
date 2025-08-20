@@ -87,6 +87,7 @@ const MainLayout = () => {
           pt: isMobile ? 8 : 4,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           backgroundColor: theme.palette.background.default,
+          overflowX: 'hidden',
         }}
       >
         <Outlet />

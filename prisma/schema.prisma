@@ -7,7 +7,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// Modelo para a equipe
 model Team {
   id           Int            @id @default(autoincrement())
   name         String         @unique
@@ -23,7 +22,6 @@ model Team {
   events       Event[]
 }
 
-// Modelo para o usuário (Managers, Atletas)
 model User {
   id           Int              @id @default(autoincrement())
   username     String           @unique
@@ -39,7 +37,6 @@ model User {
   confirmations ConfirmationUser[]
 }
 
-// Modelo para os dados do atleta (relacionado a User)
 model Athlete {
   id           Int               @id @default(autoincrement())
   firstName    String
@@ -47,7 +44,7 @@ model Athlete {
   phone        String?
   federationId String?
   birthDate    DateTime
-  houseNumber  String?
+  shirtNumber  String?
   
   userId       Int               @unique
   user         User              @relation(fields: [userId], references: [id])
@@ -55,7 +52,6 @@ model Athlete {
   categories   CategoryAthlete[]
 }
 
-// Modelo para as categorias
 model Category {
   id         Int        @id @default(autoincrement())
   name       String
@@ -67,7 +63,6 @@ model Category {
   payments   Payment[]
 }
 
-// Tabela de junção para Atleta e Categoria (muitos para muitos)
 model CategoryAthlete {
   athleteId  Int
   athlete    Athlete    @relation(fields: [athleteId], references: [id])
@@ -77,7 +72,6 @@ model CategoryAthlete {
   @@id([athleteId, categoryId])
 }
 
-// Tabela para pagamentos
 model Payment {
   id         Int        @id @default(autoincrement())
   name       String
@@ -92,9 +86,19 @@ model Payment {
   categoryId Int
   
   paidBy     PaymentUser[]
+  items      PaymentItem[]
 }
 
-// Tabela de junção para Pagamento e User
+model PaymentItem {
+  id          Int      @id @default(autoincrement())
+  name        String
+  value       Float
+  quantityEnabled Boolean  @default(false)
+
+  paymentId   Int
+  payment     Payment  @relation(fields: [paymentId], references: [id])
+}
+
 model PaymentUser {
   paymentId Int
   payment   Payment  @relation(fields: [paymentId], references: [id])
@@ -105,7 +109,6 @@ model PaymentUser {
   @@id([paymentId, userId])
 }
 
-// Tabela para eventos (treinos, campeonatos, etc.)
 model Event {
   id          Int            @id @default(autoincrement())
   name        String
@@ -120,7 +123,6 @@ model Event {
   confirmations Confirmation[]
 }
 
-// Tabela para solicitações de confirmação
 model Confirmation {
   id          Int          @id @default(autoincrement())
   name        String
@@ -131,7 +133,6 @@ model Confirmation {
   confirmedBy ConfirmationUser[]
 }
 
-// Tabela de junção para Confirmação e User
 model ConfirmationUser {
   confirmationId Int
   confirmation   Confirmation @relation(fields: [confirmationId], references: [id])
@@ -139,5 +140,21 @@ model ConfirmationUser {
   user           User         @relation(fields: [userId], references: [id])
   confirmedAt    DateTime?
   
+  confirmedItems  ConfirmationItem[]
+
   @@id([confirmationId, userId])
+}
+
+model ConfirmationItem {
+  confirmationId        Int 
+  userId                Int 
+
+  confirmationUser      ConfirmationUser @relation(fields: [confirmationId, userId], references: [confirmationId, userId]) 
+  
+  paymentItemId         Int
+  paymentItem           PaymentItem      @relation(fields: [paymentItemId], references: [id])
+
+  quantity              Int              @default(1)
+
+  @@id([confirmationId, userId, paymentItemId]) // A chave primária deve incluir todas as chaves estrangeiras
 }
