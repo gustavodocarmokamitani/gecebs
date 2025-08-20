@@ -11,6 +11,12 @@ import { AuthProvider } from './hooks/useAuth.jsx';
 import PrivateRoute from './components/PrivateRoute.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
+import Athlete from './pages/Athlete.jsx';
+import Payment from './pages/Payment.jsx';
+import Event from './pages/Event.jsx';
+import Settings from './pages/Settings.jsx';
+import MainLayout from './components/MainLayout.jsx';
+import Analytics from './pages/Analytics.jsx';
 
 const root = document.getElementById('root');
 if (root !== null) {
@@ -28,14 +34,14 @@ if (root !== null) {
               <Route path="/register" element={<Register />} />
 
               {/* Rota privada */}
-              {/* <Route
-                path="/dashboard"
-                element={
-                  <PrivateRoute>
-                 
-                  </PrivateRoute>
-                }
-              /> */}
+              <Route path="/" element={<MainLayout />}>
+                {/* Rota padrão aninhada (index) para a rota pai "/" */}
+                <Route path="analytics" element={<Analytics />} />
+                <Route path="athlete" element={<Athlete />} />
+                <Route path="payment" element={<Payment />} />
+                <Route path="event" element={<Event />} />
+                <Route path="settings" element={<Settings />} />
+              </Route>
             </Routes>
           </BrowserRouter>
         </AuthProvider>

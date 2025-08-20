@@ -17,9 +17,9 @@ const AuthLayout = ({ page, title, children }) => {
         bgcolor: '#111317',
         px: 3,
         backgroundImage: `url(${backgroundAuth})`,
-        backgroundSize: 'cover',     // cobre toda a tela
-        backgroundPosition: 'center',// centraliza a imagem
-        backgroundRepeat: 'no-repeat', // evita repetição
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
       <Paper
@@ -27,9 +27,9 @@ const AuthLayout = ({ page, title, children }) => {
         sx={{
           p: 4,
           width: '100%',
-          maxWidth: 400,
+          maxWidth: 350,
           pb: 10,
-          boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.9)"
+          boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.9)',
         }}
       >
         <Typography
@@ -42,7 +42,7 @@ const AuthLayout = ({ page, title, children }) => {
         >
           <Box component="span" color="primary.dark" sx={{ fontWeight: 100 }}>
             {page}
-          </Box>{" "}
+          </Box>{' '}
           {title}
         </Typography>
 
