@@ -28,10 +28,11 @@ const EventCard = ({ event }) => {
     setIsExpanded(!isExpanded);
   };
 
+
   return (
     <Card
       sx={{
-        maxWidth: 500,
+        minWidth: 320,
         margin: 2,
         borderRadius: '12px',
         backgroundColor: theme.palette.background.paper,
@@ -64,23 +65,26 @@ const EventCard = ({ event }) => {
           <Typography variant="p" component="div">
             {event.name}
           </Typography>
-          <Typography variant="p" component="div" fontWeight={300}>
-            Data:
-            <span style={{ color: theme.palette.primary.main, fontWeight: '600' }}>
-              {' '}
-              24/04/2025
-            </span>
+          <Typography variant="p" color={theme.palette.text.secondary} component="div">
+            {event.description}
           </Typography>
-          <Typography variant="p" component="div" fontWeight={300}>
+          <Typography variant="p" color={theme.palette.text.secondary} component="div">
+            {event.location}
+          </Typography>
+          <Typography
+            variant="p"
+            color={theme.palette.text.secondary}
+            component="div"
+            fontWeight={300}
+          >
+            {new Intl.DateTimeFormat("pt-BR").format(new Date(event.date))}
+          </Typography>
+          <Typography variant="p" color={theme.palette.text.secondary} component="div" fontWeight={300}>
             Atletas:
-            <span style={{ color: theme.palette.secondary.main, fontWeight: '600' }}> 14 </span>
+            <span style={{ color: theme.palette.secondary.main, fontWeight: '600' }}> {event.confirmedAthletes.length + event.unconfirmedAthletes.length} </span>
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Typography
-            variant="subtitle1"
-            sx={{ mr: 1, color: theme.palette.text.secondary }}
-          ></Typography>
           {/* Botão com ícone de seta que rotaciona */}
           <IconButton
             onClick={handleExpandClick}
@@ -103,7 +107,7 @@ const EventCard = ({ event }) => {
         <Box
           sx={{
             display: 'flex',
-            justifyContent: 'center',
+            justifyContent: 'space-around',
             alignItems: isMobile ? 'center' : 'start',
             flexDirection: isMobile ? 'column' : 'row',
           }}
@@ -117,7 +121,7 @@ const EventCard = ({ event }) => {
               Confirmados ({event.confirmedAthletes.length})
             </Typography>
 
-            {event.confirmedAthletes.length > 0 ? (
+            {event.confirmedAthletes.length > 0 && (
               <List dense>
                 {event.confirmedAthletes.map((athlete) => (
                   <ListItem key={athlete.id}>
@@ -125,10 +129,6 @@ const EventCard = ({ event }) => {
                   </ListItem>
                 ))}
               </List>
-            ) : (
-              <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                Nenhum atleta pendente de confirmação.
-              </Typography>
             )}
           </CardContent>
           <CardContent sx={{ textAlign: 'center' }}>
@@ -140,7 +140,7 @@ const EventCard = ({ event }) => {
               Pendentes ({event.unconfirmedAthletes.length})
             </Typography>
 
-            {event.unconfirmedAthletes.length > 0 ? (
+            {event.unconfirmedAthletes.length > 0 && (
               <List dense>
                 {event.unconfirmedAthletes.map((athlete) => (
                   <ListItem key={athlete.id}>
@@ -148,10 +148,6 @@ const EventCard = ({ event }) => {
                   </ListItem>
                 ))}
               </List>
-            ) : (
-              <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                Nenhum atleta pendente de confirmação.
-              </Typography>
             )}
           </CardContent>
         </Box>
