@@ -8,95 +8,104 @@ generator client {
 }
 
 model Team {
-  id           Int            @id @default(autoincrement())
-  name         String         @unique
-  email        String         @unique
-  password     String
-  phone        String?
-  image        String?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  users        User[]
-  categories   Category[]
-  payments     Payment[]
-  events       Event[]
+  id         Int        @id @default(autoincrement())
+  name       String     @unique
+  email      String     @unique
+  password   String
+  phone      String?
+  image      String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  users      User[]
+  categories Category[]
+  payments   Payment[]
+  events     Event[]
 }
 
 model User {
-  id           Int              @id @default(autoincrement())
-  username     String           @unique
-  password     String
-  role         String           // 'MANAGER' ou 'ATHLETE'
-  email        String?
+  id            Int                @id @default(autoincrement())
+  username      String             @unique
+  password      String
+  role          String             // 'MANAGER' ou 'ATHLETE'
+  email         String?
   
-  teamId       Int
-  team         Team             @relation(fields: [teamId], references: [id])
+  teamId        Int
+  team          Team               @relation(fields: [teamId], references: [id])
   
-  athlete      Athlete?
-  payments     PaymentUser[]
+  athlete       Athlete?
+  payments      PaymentUser[]
   confirmations ConfirmationUser[]
 }
 
 model Athlete {
-  id           Int               @id @default(autoincrement())
-  firstName    String
-  lastName     String
-  phone        String?
+  id         Int               @id @default(autoincrement())
+  firstName  String
+  lastName   String
+  phone      String?
   federationId String?
-  birthDate    DateTime
-  shirtNumber  String?
+  birthDate  DateTime
+  shirtNumber String?
   
-  userId       Int               @unique
-  user         User              @relation(fields: [userId], references: [id])
+  userId     Int               @unique
+  user       User              @relation(fields: [userId], references: [id])
   
-  categories   CategoryAthlete[]
+  categories CategoryAthlete[]
 }
 
 model Category {
-  id         Int        @id @default(autoincrement())
+  id         Int               @id @default(autoincrement())
   name       String
   
   teamId     Int
-  team       Team       @relation(fields: [teamId], references: [id])
+  team       Team              @relation(fields: [teamId], references: [id])
 
   athletes   CategoryAthlete[]
   payments   Payment[]
+
+  // RELAÇÃO ADICIONADA: O campo oposto para o relacionamento com `Event`
+  events     Event[]
 }
 
 model CategoryAthlete {
   athleteId  Int
-  athlete    Athlete    @relation(fields: [athleteId], references: [id])
+  athlete    Athlete           @relation(fields: [athleteId], references: [id])
   categoryId Int
-  category   Category   @relation(fields: [categoryId], references: [id])
+  category   Category          @relation(fields: [categoryId], references: [id])
 
   @@id([athleteId, categoryId])
 }
 
 model Payment {
-  id         Int        @id @default(autoincrement())
+  id         Int           @id @default(autoincrement())
   name       String
   value      Float
   dueDate    DateTime
   pixKey     String
   
   teamId     Int
-  team       Team       @relation(fields: [teamId], references: [id])
+  team       Team          @relation(fields: [teamId], references: [id])
 
-  category   Category   @relation(fields: [categoryId], references: [id])
+  category   Category      @relation(fields: [categoryId], references: [id])
   categoryId Int
+  
+  eventId    Int?
+  event      Event?        @relation(fields: [eventId], references: [id])
   
   paidBy     PaymentUser[]
   items      PaymentItem[]
 }
 
 model PaymentItem {
-  id          Int      @id @default(autoincrement())
-  name        String
-  value       Float
-  quantityEnabled Boolean  @default(false)
+  id              Int                @id @default(autoincrement())
+  name            String
+  value           Float
+  quantityEnabled Boolean            @default(false)
 
-  paymentId   Int
-  payment     Payment  @relation(fields: [paymentId], references: [id])
+  paymentId       Int
+  payment         Payment            @relation(fields: [paymentId], references: [id])
+
+  // RELAÇÃO ADICIONADA: O campo oposto para o relacionamento com `ConfirmationItem`
+  confirmationItems ConfirmationItem[]
 }
 
 model PaymentUser {
@@ -110,57 +119,59 @@ model PaymentUser {
 }
 
 model Event {
-  id             Int             @id @default(autoincrement())
-  name           String
-  description    String?
-  date           DateTime
-  location       String?
-  type           String          // 'TRAINING' ou 'CHAMPIONSHIP'
+  id            Int            @id @default(autoincrement())
+  name          String
+  description   String?
+  date          DateTime
+  location      String?
+  type          String         // 'TRAINING' ou 'CHAMPIONSHIP'
   
-  teamId         Int
-  team           Team            @relation(fields: [teamId], references: [id])
+  teamId        Int
+  team          Team           @relation(fields: [teamId], references: [id])
 
-  categoryId      Int
-  category        Category       @relation(fields: [categoryId], references: [id])
+  categoryId    Int
+  category      Category       @relation(fields: [categoryId], references: [id])
 
-  confirmations  Confirmation[]
+  confirmations Confirmation[]
+ 
+  payments      Payment[]
 }
 
 model Confirmation {
-  id          Int           @id @default(autoincrement())
-  createdAt   DateTime      @default(now())
+  id            Int              @id @default(autoincrement())
+  createdAt     DateTime         @default(now())
 
-  eventId     Int
-  event       Event         @relation(fields: [eventId], references: [id])
+  eventId       Int
+  event         Event            @relation(fields: [eventId], references: [id])
   
-  confirmedBy ConfirmationUser[]
+  confirmedBy   ConfirmationUser[]
 }
 
 model ConfirmationUser {
-  confirmationId Int
-  confirmation   Confirmation @relation(fields: [confirmationId], references: [id])
+  confirmationId   Int
+  confirmation     Confirmation   @relation(fields: [confirmationId], references: [id])
   
-  userId         Int
-  user           User         @relation(fields: [userId], references: [id])
+  userId           Int
+  user             User           @relation(fields: [userId], references: [id])
   
-  confirmedAt    DateTime?    // quando ele confirmou
-  status         Boolean      // true = confirmado, false = não
+  confirmedAt      DateTime?      // quando ele confirmou
+  status           Boolean        // true = confirmado, false = não
   
-  confirmedItems ConfirmationItem[]
+  confirmedItems   ConfirmationItem[]
 
-  @@id([confirmationId, userId]) 
+  @@id([confirmationId, userId])  
 }
 
 model ConfirmationItem {
-  confirmationId        Int 
-  userId                Int 
+  confirmationId     Int
+  userId             Int
 
-  confirmationUser      ConfirmationUser @relation(fields: [confirmationId, userId], references: [confirmationId, userId]) 
+  confirmationUser   ConfirmationUser @relation(fields: [confirmationId, userId], references: [confirmationId, userId])
   
-  paymentItemId         Int
-  paymentItem           PaymentItem      @relation(fields: [paymentItemId], references: [id])
+  paymentItemId      Int
+  paymentItem        PaymentItem      @relation(fields: [paymentItemId], references: [id])
 
-  quantity              Int              @default(1)
+  quantity           Int              @default(1)
 
-  @@id([confirmationId, userId, paymentItemId]) // A chave primária deve incluir todas as chaves estrangeiras
+  @@id([confirmationId, userId, paymentItemId])
 }

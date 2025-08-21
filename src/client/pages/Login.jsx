@@ -1,24 +1,52 @@
 import React, { useState } from 'react';
-import { Button, Grid2 as Grid, Link as MuiLink } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
+import { Button, Grid2 as Grid, Link as MuiLink, CircularProgress } from '@mui/material';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/auth/AuthLayout';
 import CustomInput from '../components/common/CustomInput';
 import CustomButton from '../components/common/CustomButton';
+import { useAuth } from '../hooks/AuthContext';
+import { toast } from 'react-toastify';
+import Auth from '../services/Auth';
 
 const Login = () => {
+  const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
-
-  const handleLogin = (event) => {
-    event.preventDefault();
-    console.log('Login attempt:', formData);
-  };
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+  };
+
+  const handleLogin = async (event) => {
+    event.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const { email, password } = formData;
+
+      // Chame a função de login do AuthProvider com as credenciais
+      const success = await login({ loginId: email, password });
+
+      if (success) {
+        toast.success('Login realizado com sucesso!');
+        navigate('/analytics');
+      } else {
+        // A função `login` já lida com o erro e mostra o toast, então você pode
+        // simplesmente não fazer nada aqui ou adicionar um log.
+        console.log('Login falhou (handleLogin)');
+      }
+    } catch (error) {
+      // O tratamento de erro já é feito dentro da função `login` no AuthProvider,
+      // então este `catch` se torna redundante para a maioria dos casos.
+      console.error('Erro inesperado no login:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -42,7 +70,7 @@ const Login = () => {
               placeholder="Digite sua senha"
               id="password"
               name="password"
-              type="password" // 🔑 senha escondida
+              type="password"
               required
               value={formData.password}
               onChange={handleInputChange}
@@ -54,8 +82,9 @@ const Login = () => {
               type="submit"
               fullWidth
               sx={{ mt: 3, mb: 2, borderRadius: 3 }}
+              disabled={isLoading}
             >
-              Login
+              {isLoading ? 'Entrando...' : 'Login'}
             </CustomButton>
           </Grid>
           <Grid size={12} sx={{ textAlign: 'center' }}>

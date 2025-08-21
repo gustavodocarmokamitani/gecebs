@@ -5,30 +5,54 @@ import {
   Box,
   Typography,
   Divider,
-  IconButton,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
+  Checkbox,
+  FormControlLabel,
 } from '@mui/material';
 import CustomInput from '../components/common/CustomInput';
 import CustomButton from '../components/common/CustomButton';
+import CustomSelect from '../components/common/CustomSelect'; // Importe o novo componente
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useTheme } from '@mui/material/styles';
 import { useResponsive } from '../hooks/useResponsive';
 
-// Dados de exemplo para simular edição
-const pagamentos = [
-  // ... seus dados de exemplo (os mesmos do Payment.jsx)
+// Dados de exemplo para simular a tabela de categorias e eventos
+const categories = [
+  { id: 1, name: 'Adulto' },
+  { id: 2, name: 'Sub-23' },
+  // ... outras categorias
 ];
 
-const categoryLabels = {
-  1: 'Adulto',
-  2: 'Sub-23',
-  3: 'Juvenil',
-  // ... outras categorias
-};
+const eventos = [
+  { id: 1, name: 'Campeonato Nacional de Karatê' },
+  { id: 2, name: 'Treinamento de Verão' },
+  // ... outros eventos
+];
+
+// Dados de exemplo para simular edição (se precisar)
+const payments = [
+  {
+    id: 1,
+    name: 'Taxa de Inscrição - Campeonato',
+    value: 150.0,
+    dueDate: '2025-10-31T00:00:00.000Z',
+    pixKey: '123.456.789-01',
+    categoryId: 1,
+    eventId: 1, // Exemplo de pagamento associado a um evento
+  },
+  {
+    id: 2,
+    name: 'Mensalidade Outubro',
+    value: 100.0,
+    dueDate: '2025-10-05T00:00:00.000Z',
+    pixKey: '987.654.321-01',
+    categoryId: 2,
+    eventId: null, // Exemplo de pagamento sem evento associado
+  },
+];
 
 const PaymentForm = () => {
   const { paymentId } = useParams();
@@ -38,7 +62,7 @@ const PaymentForm = () => {
   const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
 
   const isEditing = !!paymentId;
-  const paymentToEdit = isEditing ? pagamentos.find((p) => p.id === parseInt(paymentId)) : null;
+  const paymentToEdit = isEditing ? payments.find((p) => p.id === parseInt(paymentId)) : null;
 
   const [formData, setFormData] = useState({
     name: '',
@@ -46,6 +70,7 @@ const PaymentForm = () => {
     dueDate: '',
     pixKey: '',
     categoryId: '',
+    eventId: '', // Novo campo para o ID do evento
   });
 
   useEffect(() => {
@@ -56,6 +81,7 @@ const PaymentForm = () => {
         dueDate: paymentToEdit.dueDate.split('T')[0],
         pixKey: paymentToEdit.pixKey,
         categoryId: paymentToEdit.categoryId,
+        eventId: paymentToEdit.eventId || '', // Define o ID do evento se existir
       });
     } else {
       setFormData({
@@ -64,6 +90,7 @@ const PaymentForm = () => {
         dueDate: '',
         pixKey: '',
         categoryId: '',
+        eventId: '',
       });
     }
   }, [paymentId, isEditing, paymentToEdit]);
@@ -84,6 +111,12 @@ const PaymentForm = () => {
   };
 
   const title = isEditing ? 'Editar Pagamento' : 'Adicionar Pagamento';
+
+  // Opções para o select de eventos, incluindo uma opção 'Nenhum'
+  const eventOptions = [
+    { value: '', label: 'Nenhum' },
+    ...eventos.map((e) => ({ value: e.id, label: e.name })),
+  ];
 
   return (
     <Box>
@@ -119,7 +152,7 @@ const PaymentForm = () => {
               },
             }}
           >
-            Visão Geral
+            Gestão de Pagamentos
           </Box>
           <span>
             <ChevronRightIcon sx={{ mt: 1.5 }} />
@@ -145,6 +178,7 @@ const PaymentForm = () => {
         }}
       >
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+          {/* Nome do Pagamento */}
           <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
             <CustomInput
               label="Nome do Pagamento"
@@ -154,6 +188,7 @@ const PaymentForm = () => {
               required
             />
           </Box>
+          {/* Valor */}
           <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
             <CustomInput
               label="Valor (R$)"
@@ -164,6 +199,7 @@ const PaymentForm = () => {
               required
             />
           </Box>
+          {/* Data de Vencimento */}
           <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
             <CustomInput
               label="Data de Vencimento"
@@ -175,14 +211,16 @@ const PaymentForm = () => {
               required
             />
           </Box>
+          {/* Chave Pix */}
           <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
             <CustomInput
-              label="Chave PIX"
+              label="Chave Pix"
               name="pixKey"
               value={formData.pixKey}
               onChange={handleChange}
             />
           </Box>
+          {/* Categoria do Pagamento (usando o ID) */}
           <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
             <FormControl fullWidth>
               <InputLabel id="category-label">Categoria</InputLabel>
@@ -194,13 +232,23 @@ const PaymentForm = () => {
                 onChange={handleChange}
                 required
               >
-                {Object.keys(categoryLabels).map((key) => (
-                  <MenuItem key={key} value={parseInt(key)}>
-                    {categoryLabels[key]}
+                {categories.map((cat) => (
+                  <MenuItem key={cat.id} value={cat.id}>
+                    {cat.name}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
+          </Box>
+          {/* Novo campo: Evento */}
+          <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
+            <CustomSelect
+              label="Evento Associado"
+              name="eventId"
+              value={formData.eventId}
+              onChange={handleChange}
+              options={eventOptions}
+            />
           </Box>
         </Box>
         <Box sx={{ mt: 2 }}>

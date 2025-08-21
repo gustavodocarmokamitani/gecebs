@@ -29,6 +29,7 @@ const AthleteForm = () => {
     lastName: '',
     phone: '',
     federationId: '',
+    confederationId: '',
     birthDate: '',
     shirtNumber: '',
   });
@@ -184,6 +185,14 @@ const AthleteForm = () => {
               label="Nº da Federação"
               name="federationId"
               value={formData.federationId}
+              onChange={handleChange}
+            />
+          </Box>
+          <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
+            <CustomInput
+              label="Nº da Confederação"
+              name="confederationId"
+              value={formData.confederationId}
               onChange={handleChange}
             />
           </Box>
