@@ -6,15 +6,25 @@ import PaymentIcon from '@mui/icons-material/Payment';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import SettingsIcon from '@mui/icons-material/Settings';
 import SportsBaseballIcon from '@mui/icons-material/SportsBaseball';
+import LogoutIcon from '@mui/icons-material/Logout';
 import { useResponsive } from '../../hooks/useResponsive';
 import NavItem from './NavItem';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/AuthContext';
 
 const drawerWidth = 305;
 
 const Nav = ({ open, onClose }) => {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
   const theme = useTheme();
   const deviceType = useResponsive();
   const isPermanent = deviceType === 'desktop';
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const drawerContent = (
     <Box
@@ -80,6 +90,17 @@ const Nav = ({ open, onClose }) => {
           primary="Settings"
           icon={SettingsIcon}
           onClick={isPermanent ? null : onClose}
+        />
+        <NavItem
+          to="/logout"
+          primary="Sair"
+          icon={LogoutIcon}
+          onClick={() => {
+            handleLogout();
+            if (!isPermanent) {
+              onClose();
+            }
+          }}
         />
       </List>
     </Box>

@@ -1,0 +1,89 @@
+// src/services/Event.js
+import api from './api';
+
+const Event = {
+  /**
+   * Cria um novo evento.
+   * Rota: POST /event/create
+   * @param {object} eventData - Dados do evento (name, description, etc.).
+   */
+  create: async (eventData) => {
+    try {
+      const response = await api.post('/event/create', eventData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Lista todos os eventos criados para o time do manager.
+   * Rota: GET /event/list-all-team-events
+   */
+  listAllTeamEvents: async () => {
+    try {
+      const response = await api.get('/event/list-all-team-events');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Lista os eventos aos quais o atleta está associado.
+   * Rota: GET /event/list-all-events-athletics
+   */
+  listMyEvents: async () => {
+    try {
+      const response = await api.get('/event/list-all-events-athletics');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Atualiza um evento existente.
+   * Rota: PATCH /event/update/:id
+   * @param {number} id - ID do evento a ser atualizado.
+   * @param {object} updateData - Dados para atualização.
+   */
+  update: async (id, updateData) => {
+    try {
+      const response = await api.patch(`/event/update/${id}`, updateData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Exclui um evento por ID.
+   * Rota: DELETE /event/delete/:id
+   * @param {number} id - ID do evento a ser excluído.
+   */
+  remove: async (id) => {
+    try {
+      const response = await api.delete(`/event/delete/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Alterna a presença do atleta em um evento (Confirma/Desconfirma).
+   * Rota: PATCH /event/toggle-confirmation/:confirmationId
+   * @param {number} confirmationId - ID da confirmação.
+   */
+  toggleConfirmation: async (confirmationId) => {
+    try {
+      const response = await api.patch(`/event/toggle-confirmation/${confirmationId}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+};
+
+export default Event;

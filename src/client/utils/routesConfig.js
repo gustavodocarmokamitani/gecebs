@@ -3,6 +3,7 @@ import PaymentIcon from '@mui/icons-material/Payment';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import SportsBaseballIcon from '@mui/icons-material/SportsBaseball';
 import SettingsIcon from '@mui/icons-material/Settings';
+import LogoutIcon from '@mui/icons-material/Logout';
 
 const routesConfig = {
   '/analytics': {
@@ -24,6 +25,10 @@ const routesConfig = {
   '/setting': {
     title: 'Configuração',
     icon: SettingsIcon,
+  },
+  '/logout': {
+    title: 'Sair',
+    icon: LogoutIcon,
   },
 };
 

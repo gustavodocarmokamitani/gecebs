@@ -7,8 +7,8 @@ import CustomButton from '../components/common/CustomButton';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useTheme } from '@mui/material/styles';
 import { useResponsive } from '../hooks/useResponsive';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { scale } from 'framer-motion';
+import Athlete from '../services/Athlete';
+import { toast } from 'react-toastify';
 
 const atletas = [
   // ... seus dados de exemplo
@@ -33,6 +33,8 @@ const AthleteForm = () => {
     birthDate: '',
     shirtNumber: '',
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (isEditing && athleteToEdit) {
@@ -41,6 +43,7 @@ const AthleteForm = () => {
         lastName: athleteToEdit.lastName,
         phone: athleteToEdit.phone,
         federationId: athleteToEdit.federationId,
+        confederationId: athleteToEdit.confederationId,
         birthDate: athleteToEdit.birthDate.split('T')[0],
         shirtNumber: athleteToEdit.shirtNumber,
       });
@@ -50,6 +53,7 @@ const AthleteForm = () => {
         lastName: '',
         phone: '',
         federationId: '',
+        confederationId: '',
         birthDate: '',
         shirtNumber: '',
       });
@@ -61,14 +65,29 @@ const AthleteForm = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isEditing) {
-      console.log('Dados para edição:', formData);
-    } else {
-      console.log('Dados para criação:', formData);
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      if (isEditing) {
+        toast.info('Funcionalidade de edição ainda não implementada.');
+      } else {
+        // Lógica de CRIAÇÃO
+        const newAthlete = await Athlete.create(formData);
+        toast.success('Atleta criado com sucesso!');
+        console.log('Atleta criado:', newAthlete);
+      }
+      navigate('/athlete');
+    } catch (err) {
+      console.error('Erro:', err);
+      const errorMessage = err.response?.data?.message || 'Erro ao processar a solicitação.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
-    navigate('/athlete');
   };
 
   const title = isEditing ? 'Editar Atleta' : 'Adicionar Atleta';
@@ -208,8 +227,8 @@ const AthleteForm = () => {
         </Box>
 
         <Box sx={{ mt: 2 }}>
-          <CustomButton fullWidth type="submit" variant="contained">
-            Salvar
+          <CustomButton fullWidth type="submit" variant="contained" disabled={isLoading}>
+            {isLoading ? 'Salvando...' : 'Salvar'}
           </CustomButton>
         </Box>
       </Box>

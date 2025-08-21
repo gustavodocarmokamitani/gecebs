@@ -1,3 +1,4 @@
+// src/routes/v1/user.route.js
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
@@ -7,196 +8,142 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 /**
- * POST /create-athlete
- * Cria um novo usuário (atleta) para o time.
+ * POST /create-user
+ * Cria um novo usuário genérico.
  */
-router.post('/create-athlete', authenticateToken, async (req, res) => {
+router.post('/create-user', authenticateToken, async (req, res) => {
   try {
-    const { firstName, lastName, phone, birthDate, federationId, houseNumber } = req.body;
-    const { teamId, role } = req.user;
+    const { username, password, role, teamId } = req.body;
+    const { role: requesterRole } = req.user;
 
-    // Apenas managers podem criar atletas
-    if (role !== 'MANAGER') {
+    if (requesterRole !== 'ADMIN' && requesterRole !== 'MANAGER') {
       return res.status(403).json({ message: 'Acesso negado.' });
     }
 
-    // Gera um nome de usuário único
-    const username = `${firstName.replace(/\s/g, '').toLowerCase()}${lastName.replace(/\s/g, '').toLowerCase()}${teamId}`;
+    const existingUser = await prisma.user.findUnique({ where: { username } });
+    if (existingUser) {
+      return res.status(409).json({ message: 'Nome de usuário já existe.' });
+    }
 
-    // Gera uma senha genérica e a criptografa
-    const genericPassword = `${firstName.replace(/\s/g, '').toLowerCase()}123`;
-    const hashedPassword = await bcrypt.hash(genericPassword, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newAthlete = await prisma.user.create({
+    const newUser = await prisma.user.create({
       data: {
         username,
         password: hashedPassword,
-        role: 'ATHLETE',
+        role: role,
         teamId: teamId,
-        athlete: {
-          create: {
-            firstName,
-            lastName,
-            phone,
-            birthDate: new Date(birthDate),
-            federationId,
-            houseNumber,
-          },
-        },
-      },
-      include: {
-        athlete: true,
       },
     });
 
     res.status(201).json({
-      message: 'Atleta criado com sucesso. Senha temporária: ' + genericPassword,
-      athlete: newAthlete,
+      message: 'Usuário criado com sucesso.',
+      user: newUser,
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Erro ao criar o atleta.' });
+    res.status(500).json({ message: 'Erro ao criar o usuário.' });
   }
 });
 
 /**
- * GET /list-athletes
- * Lista todos os atletas de um time.
+ * PATCH /update-user/:id
+ * Atualiza os dados de um usuário (username, password, etc.).
  */
-router.get('/list-athletes', authenticateToken, async (req, res) => {
-  try {
-    const { teamId } = req.user;
-
-    const athletes = await prisma.user.findMany({
-      where: {
-        teamId: teamId,
-        role: 'ATHLETE',
-      },
-      include: {
-        athlete: true,
-      },
-    });
-
-    res.status(200).json(athletes);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Erro ao listar os atletas.' });
-  }
-});
-
-/**
- * POST /add-category
- * Adiciona uma categoria a um atleta.
- */
-router.post('/add-category', authenticateToken, async (req, res) => {
-  try {
-    const { athleteId, categoryId } = req.body;
-    const { teamId, role } = req.user;
-
-    // Apenas managers podem adicionar categorias
-    if (role !== 'MANAGER') {
-      return res.status(403).json({ message: 'Acesso negado.' });
-    }
-
-    // Verifica se a categoria e o atleta pertencem ao mesmo time
-    const athlete = await prisma.athlete.findUnique({
-      where: { id: athleteId },
-      include: { user: true },
-    });
-    const category = await prisma.category.findUnique({ where: { id: categoryId } });
-
-    if (!athlete || athlete.user.teamId !== teamId || !category || category.teamId !== teamId) {
-      return res.status(404).json({ message: 'Atleta ou categoria não encontrados no seu time.' });
-    }
-
-    // Cria a associação na tabela de junção
-    const newAssociation = await prisma.categoryAthlete.create({
-      data: {
-        athleteId,
-        categoryId,
-      },
-    });
-
-    res.status(201).json({
-      message: 'Categoria adicionada ao atleta com sucesso.',
-      association: newAssociation,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Erro ao adicionar a categoria ao atleta.' });
-  }
-});
-
-/**
- * GET /:id/categories
- * Lista todas as categorias de um atleta específico.
- */
-router.get('/:id/categories', authenticateToken, async (req, res) => {
+router.patch('/update-user/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { teamId } = req.user;
+    const { username, password, role, teamId } = req.body;
+    const { role: requesterRole, teamId: requesterTeamId } = req.user;
 
-    // Procura o atleta e suas categorias, garantindo que ele pertence ao time do manager
-    const athlete = await prisma.athlete.findUnique({
-      where: { id: Number(id) },
-      include: {
-        user: true,
-        categories: {
-          include: { category: true },
-        },
-      },
-    });
+    const userToUpdate = await prisma.user.findUnique({ where: { id: Number(id) } });
 
-    if (!athlete || athlete.user.teamId !== teamId) {
-      return res.status(404).json({ message: 'Atleta não encontrado no seu time.' });
+    if (!userToUpdate || userToUpdate.teamId !== requesterTeamId) {
+      return res
+        .status(404)
+        .json({ message: 'Usuário não encontrado ou você não tem permissão para atualizá-lo.' });
     }
 
-    res.status(200).json(athlete.categories.map((ca) => ca.category));
+    // Apenas ADMINs podem alterar a role de um usuário
+    if (role && requesterRole !== 'ADMIN') {
+      return res
+        .status(403)
+        .json({ message: 'Apenas admins podem alterar a função de um usuário.' });
+    }
+
+    const data = {};
+    if (username) {
+      data.username = username;
+    }
+    if (password) {
+      data.password = await bcrypt.hash(password, 10);
+    }
+    if (role) {
+      data.role = role;
+    }
+    if (teamId) {
+      data.teamId = teamId;
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: Number(id) },
+      data,
+    });
+
+    res.status(200).json({
+      message: 'Usuário atualizado com sucesso.',
+      user: updatedUser,
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Erro ao listar as categorias do atleta.' });
+    res.status(500).json({ message: 'Erro ao atualizar o usuário.' });
   }
 });
 
 /**
- * DELETE /remove-category
- * Remove uma categoria de um atleta.
+ * DELETE /delete-user/:id
+ * Exclui um usuário.
  */
-router.delete('/remove-category', authenticateToken, async (req, res) => {
+router.delete('/delete-user/:id', authenticateToken, async (req, res) => {
   try {
-    const { athleteId, categoryId } = req.body;
-    const { teamId, role } = req.user;
+    const { id } = req.params;
+    const { role: requesterRole, teamId: requesterTeamId } = req.user;
 
-    // Apenas managers podem remover categorias
-    if (role !== 'MANAGER') {
-      return res.status(403).json({ message: 'Acesso negado.' });
+    const userToDelete = await prisma.user.findUnique({ where: { id: Number(id) } });
+
+    if (!userToDelete || userToDelete.teamId !== requesterTeamId) {
+      return res
+        .status(404)
+        .json({ message: 'Usuário não encontrado ou você não tem permissão para excluí-lo.' });
     }
 
-    // Verifica se a associação existe e pertence ao time
-    const athlete = await prisma.athlete.findUnique({
-      where: { id: athleteId },
-      include: { user: true },
-    });
-    const category = await prisma.category.findUnique({ where: { id: categoryId } });
-
-    if (!athlete || athlete.user.teamId !== teamId || !category || category.teamId !== teamId) {
-      return res.status(404).json({ message: 'Atleta ou categoria não encontrados no seu time.' });
+    if (requesterRole !== 'ADMIN' && userToDelete.role === 'ADMIN') {
+      return res.status(403).json({ message: 'Acesso negado. Você não pode excluir outro admin.' });
     }
 
-    await prisma.categoryAthlete.delete({
-      where: {
-        athleteId_categoryId: {
-          athleteId,
-          categoryId,
-        },
-      },
+    // Se o usuário a ser excluído for um atleta, a rota delete-athlete deve ser usada para garantir
+    // que o registro do atleta também seja excluído.
+    if (userToDelete.role === 'ATHLETE') {
+      // Redireciona ou retorna um erro, sugerindo a rota correta
+      return res
+        .status(400)
+        .json({ message: 'Use a rota /athlete/delete-athlete para excluir um atleta.' });
+    }
+
+    await prisma.user.delete({
+      where: { id: Number(id) },
     });
 
-    res.status(200).json({ message: 'Categoria removida do atleta com sucesso.' });
+    res.status(200).json({ message: 'Usuário excluído com sucesso.' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Erro ao remover a categoria do atleta.' });
+    res.status(500).json({ message: 'Erro ao excluir o usuário.' });
   }
+});
+
+// Rotas de autenticação, etc.
+router.post('/auth/login', async (req, res) => {
+  // Sua lógica de login
 });
 
 export default router;

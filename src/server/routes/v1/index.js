@@ -2,14 +2,18 @@ import { Router } from 'express';
 import errorHandler from 'strong-error-handler';
 import authRoutes from './auth.route.js';
 import categoryRoutes from './category.route.js';
+import athleteRoutes from './athlete.route.js';
 import userRoutes from './user.route.js';
+import eventRoutes from './event.route.js';
 
 const router = Router();
 
 // Adicione a rota de autenticação
 router.use('/auth', authRoutes);
 router.use('/category', categoryRoutes);
+router.use('/athlete', athleteRoutes);
 router.use('/user', userRoutes);
+router.use('/event', eventRoutes);
 
 /**
  * GET /health

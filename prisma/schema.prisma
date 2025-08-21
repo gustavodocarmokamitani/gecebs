@@ -43,6 +43,7 @@ model Athlete {
   lastName   String
   phone      String?
   federationId String?
+  confederationId String?
   birthDate  DateTime
   shirtNumber String?
   

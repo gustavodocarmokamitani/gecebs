@@ -7,6 +7,8 @@ import CustomButton from '../components/common/CustomButton';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useTheme } from '@mui/material/styles';
 import { useResponsive } from '../hooks/useResponsive';
+// Importe o serviço de eventos
+import EventService from '../services/Event'; // O nome do arquivo pode variar (ex: Event.js)
 
 // Dados de exemplo para simular a tabela de categorias e tipos de evento
 const eventTypes = [
@@ -34,8 +36,6 @@ const eventos = [
     location: 'Ginásio do Ibirapuera, São Paulo - SP',
     type: 'CHAMPIONSHIP',
     categoryId: 1,
-    registrationFee: 150.0,
-    registrationDeadline: '2025-10-31T00:00:00.000Z',
   },
   {
     id: 2,
@@ -44,8 +44,6 @@ const eventos = [
     location: 'Dojo Central da Federação',
     type: 'TRAINING',
     categoryId: 2,
-    registrationFee: 0.0,
-    registrationDeadline: null,
   },
 ];
 
@@ -74,7 +72,7 @@ const EventForm = () => {
         name: eventToEdit.name,
         description: eventToEdit.description || '',
         date: eventToEdit.date.split('T')[0],
-        location: eventToEdit.location,
+        location: eventToEdit.location || '',
         type: eventToEdit.type,
         categoryId: eventToEdit.categoryId,
       });
@@ -95,14 +93,24 @@ const EventForm = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isEditing) {
-      console.log('Dados para edição:', formData);
-    } else {
-      console.log('Dados para criação:', formData);
+    try {
+      if (isEditing) {
+        // Lógica de edição
+        console.log('Dados para edição:', formData);
+        // await EventService.update(eventId, formData); // Chamada para o serviço de edição
+      } else {
+        // Lógica de criação
+        console.log('Dados para criação:', formData);
+        await EventService.create(formData); // Chamada para o serviço de criação
+        console.log('Evento criado com sucesso!');
+      }
+      navigate('/event');
+    } catch (error) {
+      console.error('Erro ao salvar o evento:', error);
+      // Aqui você pode adicionar um feedback ao usuário (e.g., um alerta ou snackbar)
     }
-    navigate('/event');
   };
 
   const title = isEditing ? 'Editar Evento' : 'Adicionar Evento';
