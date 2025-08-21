@@ -120,6 +120,9 @@ model Event {
   teamId         Int
   team           Team            @relation(fields: [teamId], references: [id])
 
+  categoryId      Int
+  category        Category       @relation(fields: [categoryId], references: [id])
+
   confirmations  Confirmation[]
 }
 

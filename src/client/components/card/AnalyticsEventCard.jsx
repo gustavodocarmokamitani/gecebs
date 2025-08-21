@@ -13,17 +13,14 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTheme } from '@mui/material/styles';
-import { useNavigate } from 'react-router-dom';
 import { useResponsive } from '../../hooks/useResponsive';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
-import CustomButton from '../common/CustomButton';
 
 // Componente do Card de Evento Colapsável
 const EventCard = ({ event }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const theme = useTheme();
-  const navigate = useNavigate();
 
   const deviceType = useResponsive();
   const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
@@ -36,12 +33,7 @@ const EventCard = ({ event }) => {
     return index % 2 === 0 ? '#2c2c2c' : '#050505';
   };
 
-  // Coleta todos os usuários de todas as confirmações
-  const allUsers = event.confirmations.flatMap((confirmation) => confirmation.confirmedBy || []);
-
-  const handleEditClick = () => {
-    navigate(`/event/edit/${event.id}`);
-  };
+  const allAthletes = [...event.confirmedAthletes, ...event.unconfirmedAthletes];
 
   return (
     <Card
@@ -101,7 +93,7 @@ const EventCard = ({ event }) => {
             Atletas:
             <span style={{ color: theme.palette.secondary.main, fontWeight: '600' }}>
               {' '}
-              {allUsers.length}{' '}
+              {allAthletes.length}{' '}
             </span>
           </Typography>
         </Box>
@@ -140,56 +132,59 @@ const EventCard = ({ event }) => {
               Lista de Atletas
             </Typography>
             <Divider sx={{ my: 1, borderColor: theme.palette.divider }} />
-            {allUsers.length > 0 && (
-              <List dense>
-                {allUsers.map((confirmationUser, index) => (
-                  <ListItem
-                    key={confirmationUser.userId}
-                    sx={{
-                      width: '250px',
-                      textAlign: 'center',
-                      backgroundColor: getBackgroundColor(index),
-                      borderRadius: '8px',
-                      marginBottom: '8px',
-                      color: theme.palette.text.primary,
-                      m: 0.5,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <ListItemText
-                      primary={`${confirmationUser.user.firstName} ${confirmationUser.user.lastName}`}
-                      secondary={confirmationUser.status ? 'Confirmado' : 'Pendente'}
-                    />
-                    <Box
+            {allAthletes.length > 0 && (
+              <List
+                dense
+                sx={{
+                  maxHeight: 300,
+                  overflowY: 'auto',
+                  px: 3,
+                  '&::-webkit-scrollbar': { height: 8, width: 8 },
+                  '&::-webkit-scrollbar-thumb': {
+                    backgroundColor: theme.palette.primary.main,
+                    borderRadius: 4,
+                  },
+                }}
+              >
+                {allAthletes.map((athlete, index) => {
+                  const isConfirmed = event.confirmedAthletes.some((a) => a.id === athlete.id);
+                  return (
+                    <ListItem
+                      key={athlete.id}
                       sx={{
-                        color: confirmationUser.status
-                          ? theme.palette.success.main
-                          : theme.palette.warning.main,
+                        width: '250px',
+                        textAlign: 'center',
+                        backgroundColor: getBackgroundColor(index),
+                        borderRadius: '8px',
+                        marginBottom: '8px',
+                        color: theme.palette.text.primary,
+                        m: 0.5,
                         display: 'flex',
+                        justifyContent: 'space-between',
                         alignItems: 'center',
                       }}
                     >
-                      {confirmationUser.status ? (
-                        <CheckCircleOutlineIcon />
-                      ) : (
-                        <PanoramaFishEyeIcon />
-                      )}
-                    </Box>
-                  </ListItem>
-                ))}
+                      <ListItemText
+                        primary={athlete.name}
+                        secondary={isConfirmed ? 'Confirmado' : 'Pendente'}
+                      />
+                      <Box
+                        sx={{
+                          color: isConfirmed
+                            ? theme.palette.success.main
+                            : theme.palette.warning.main,
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {isConfirmed ? <CheckCircleOutlineIcon /> : <PanoramaFishEyeIcon />}
+                      </Box>
+                    </ListItem>
+                  );
+                })}
               </List>
             )}
           </CardContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, my: 2, width: '90%' }}>
-            <CustomButton variant="contained" color="warning" onClick={handleEditClick}>
-              Editar
-            </CustomButton>
-            <CustomButton variant="contained" color="error">
-              Apagar
-            </CustomButton>
-          </Box>
         </Box>
       </Collapse>
     </Card>

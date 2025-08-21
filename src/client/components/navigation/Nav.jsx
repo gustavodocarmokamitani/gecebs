@@ -94,7 +94,7 @@ const Nav = ({ open, onClose }) => {
         keepMounted: true,
       }}
       sx={{
-        display: { sm: isPermanent ? 'block' : 'none', xs: isPermanent ? 'none' : 'block' },
+        display: isPermanent ? 'block' : 'block',
         '& .MuiDrawer-paper': {
           boxSizing: 'border-box',
           width: drawerWidth,

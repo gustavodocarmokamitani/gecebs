@@ -11,11 +11,20 @@ const drawerWidth = 300;
 
 const MainLayout = () => {
   const deviceType = useResponsive();
-  const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
+  const isMobile = deviceType === 'mobile';
+  const isTablet = deviceType === 'tablet';
+  const isDrawer = isMobile || isTablet;
+
   const [mobileOpen, setMobileOpen] = useState(false);
+
   const theme = useTheme();
   const location = useLocation();
-  const pageInfo = routesConfig[location.pathname] || {};
+
+  // --- Lógica Ajustada para Encontrar a Rota Principal ---
+  const pathSegments = location.pathname.split('/').filter(Boolean);
+  const mainPath = `/${pathSegments[0]}`; // Pega o primeiro segmento da URL (e.g., '/athlete')
+
+  const pageInfo = routesConfig[mainPath] || {};
   const pageTitle = pageInfo.title || 'Página Não Encontrada';
   const pageIcon = pageInfo.icon;
 
@@ -30,9 +39,9 @@ const MainLayout = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       {/* AppBar apenas no mobile */}
-      {isMobile && (
+      {isDrawer && (
         <AppBar
           position="fixed"
           sx={{
@@ -67,15 +76,11 @@ const MainLayout = () => {
       <Box
         component="nav"
         sx={{
-          width: { sm: isMobile ? 0 : drawerWidth },
+          width: isDrawer ? 0 : drawerWidth,
           flexShrink: 0,
         }}
       >
-        <Nav
-          open={isMobile ? mobileOpen : true}
-          onClose={handleDrawerToggle}
-          variant={isMobile ? 'temporary' : 'permanent'}
-        />
+        <Nav open={isDrawer ? mobileOpen : true} onClose={handleDrawerToggle} />
       </Box>
 
       {/* Conteúdo principal */}
@@ -84,8 +89,8 @@ const MainLayout = () => {
         sx={{
           flexGrow: 1,
           p: 3,
-          pt: isMobile ? 8 : 4,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          pt: isDrawer ? 8 : 4,
+          width: isDrawer ? '100%' : `calc(100% - ${drawerWidth}px)`,
           backgroundColor: theme.palette.background.default,
           overflowX: 'hidden',
         }}

@@ -3,6 +3,7 @@ import { Button, Grid2 as Grid, Link as MuiLink } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import AuthLayout from '../components/auth/AuthLayout';
 import CustomInput from '../components/common/CustomInput';
+import CustomButton from '../components/common/CustomButton';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -48,9 +49,14 @@ const Login = () => {
             />
           </Grid>
           <Grid size={12}>
-            <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2 }}>
-              Entrar
-            </Button>
+            <CustomButton
+              variant="contained"
+              type="submit"
+              fullWidth
+              sx={{ mt: 3, mb: 2, borderRadius: 3 }}
+            >
+              Login
+            </CustomButton>
           </Grid>
           <Grid size={12} sx={{ textAlign: 'center' }}>
             <MuiLink component={RouterLink} to="/forgot-password" variant="body2">

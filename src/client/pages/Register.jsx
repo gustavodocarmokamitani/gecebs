@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { TextField, Button, Grid2 as Grid, Link as MuiLink, Typography } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import AuthLayout from '../components/auth/AuthLayout';
-import PrimaryButton from '../components/common/PrimaryButton';
+import CustomButton from '../components/common/CustomButton';
 import CustomInput from '../components/common/CustomInput';
 
 const Register = () => {
@@ -97,7 +97,14 @@ const Register = () => {
             />
           </Grid> */}
           <Grid size={12}>
-            <PrimaryButton>Registrar Time</PrimaryButton>
+            <CustomButton
+              variant="contained"
+              type="submit"
+              fullWidth
+              sx={{ mt: 3, mb: 2, borderRadius: 3 }}
+            >
+              Registrar Time
+            </CustomButton>
           </Grid>
           <Grid size={12} sx={{ textAlign: 'center' }}>
             <MuiLink component={RouterLink} to="/login" variant="body2">

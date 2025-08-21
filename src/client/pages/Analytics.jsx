@@ -1,10 +1,31 @@
-import EventCard from '../components/card/EventCard';
-import { Typography, Divider, Box } from '@mui/material';
+import React, { useState } from 'react';
+import AnalyticsEventCard from '../components/card/AnalyticsEventCard';
+import {
+  Typography,
+  Divider,
+  Box,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+} from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 function Analytics() {
   const theme = useTheme();
+  // Estado para controlar qual accordion está aberto
+  const [expanded, setExpanded] = useState(false);
+
+  const handleAccordionChange = (panel) => (event, isExpanded) => {
+    setExpanded(isExpanded ? panel : false);
+  };
+
+  const categoryMap = {
+    1: 'Adulto',
+    2: 'Sub-23',
+    3: 'Juvenil',
+  };
 
   const events = [
     {
@@ -15,6 +36,7 @@ function Analytics() {
       location: 'Campo Municipal Mie Nishie',
       type: 'CHAMPIONSHIP',
       teamId: 1,
+      categoryId: 2,
       confirmations: [
         {
           id: 1,
@@ -92,6 +114,7 @@ function Analytics() {
       location: 'Campo Municipal Mie Nishie',
       type: 'TRAINING',
       teamId: 1,
+      categoryId: 1,
       confirmations: [
         {
           id: 2,
@@ -169,6 +192,7 @@ function Analytics() {
       location: 'Campo Municipal Mie Nishie',
       type: 'TRAINING',
       teamId: 1,
+      categoryId: 3,
       confirmations: [
         {
           id: 3,
@@ -246,6 +270,7 @@ function Analytics() {
       location: 'Campo Municipal Mie Nishie',
       type: 'TRAINING',
       teamId: 1,
+      categoryId: 1,
       confirmations: [
         {
           id: 4,
@@ -346,6 +371,15 @@ function Analytics() {
     };
   };
 
+  const eventsByCategory = events.reduce((acc, event) => {
+    const categoryId = event.categoryId;
+    if (!acc[categoryId]) {
+      acc[categoryId] = [];
+    }
+    acc[categoryId].push(event);
+    return acc;
+  }, {});
+
   return (
     <Box>
       <Typography
@@ -370,24 +404,47 @@ function Analytics() {
         </Box>
       </Typography>
       <Divider sx={{ my: 1, borderColor: theme.palette.divider }} />
-      <Box
-        sx={{
-          display: 'flex',
-          overflowX: 'auto',
-          gap: 2,
-          pb: 2,
-          '&::-webkit-scrollbar': { height: 8 },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: theme.palette.primary.main,
-            borderRadius: 4,
-          },
-          alignItems: 'flex-start',
-        }}
-      >
-        {events.map((event) => (
-          <EventCard key={event.id} event={adaptEvent(event)} />
-        ))}
-      </Box>
+      <Typography sx={{ my: 3 }} variant="h6" color="textSecondary">
+        Eventos
+      </Typography>
+      {Object.entries(eventsByCategory).map(([categoryId, categorizedEvents]) => (
+        <Accordion
+          key={categoryId}
+          expanded={expanded === categoryId}
+          onChange={handleAccordionChange(categoryId)}
+          sx={{ mb: 2 }}
+        >
+          <AccordionSummary
+            expandIcon={<ExpandMoreIcon />}
+            aria-controls={`panel-${categoryId}-content`}
+            id={`panel-${categoryId}-header`}
+          >
+            <Typography variant="h6" color="textPrimary">
+              {categoryMap[categoryId]}
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Box
+              sx={{
+                display: 'flex',
+                overflowX: 'auto',
+                gap: 2,
+                pb: 2,
+                '&::-webkit-scrollbar': { height: 8 },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: theme.palette.primary.main,
+                  borderRadius: 4,
+                },
+                alignItems: 'flex-start',
+              }}
+            >
+              {categorizedEvents.map((event) => (
+                <AnalyticsEventCard key={event.id} event={adaptEvent(event)} />
+              ))}
+            </Box>
+          </AccordionDetails>
+        </Accordion>
+      ))}
     </Box>
   );
 }

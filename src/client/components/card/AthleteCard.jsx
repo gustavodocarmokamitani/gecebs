@@ -9,14 +9,18 @@ import {
   ListItem,
   ListItemText,
   Collapse,
+  Divider,
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTheme } from '@mui/material/styles';
 import { useResponsive } from '../../hooks/useResponsive';
+import CustomButton from '../common/CustomButton';
 
 const AthleteCard = ({ event }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const theme = useTheme();
+  const navigate = useNavigate();
 
   const deviceType = useResponsive();
   const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
@@ -26,10 +30,29 @@ const AthleteCard = ({ event }) => {
     setIsExpanded(!isExpanded);
   };
 
+  const categoryLabels = {
+    1: 'Adulto',
+    2: 'Sub-23',
+    3: 'Juvenil',
+    4: 'Junior',
+    5: 'Pré-Junior',
+    6: 'Infantil',
+    7: 'Pré-Infantil',
+    8: 'T-Bol',
+  };
+
+  const getBackgroundColor = (index) => {
+    return index % 2 === 0 ? '#2c2c2c' : '#050505';
+  };
+
+  const handleEditClick = () => {
+    navigate(`/athlete/edit/${event.id}`);
+  };
+
   return (
     <Card
       sx={{
-        minWidth: 320,
+        minWidth: isMobile ? 300 : 350,
         margin: 2,
         borderRadius: '12px',
         backgroundColor: theme.palette.background.paper,
@@ -60,7 +83,7 @@ const AthleteCard = ({ event }) => {
           }}
         >
           <Typography variant="p" component="div">
-            {event.firstName} + + {event.lastName}
+            {event.firstName} {event.lastName}
           </Typography>
           <Typography variant="p" color={theme.palette.text.secondary} component="div">
             {event.phone}
@@ -113,29 +136,62 @@ const AthleteCard = ({ event }) => {
           sx={{
             display: 'flex',
             justifyContent: 'space-around',
-            alignItems: isMobile ? 'center' : 'start',
-            flexDirection: isMobile ? 'column' : 'row',
+            alignItems: 'center',
+            flexDirection: 'column',
           }}
         >
-          <CardContent sx={{ textAlign: 'center' }}>
+          <CardContent
+            sx={{
+              textAlign: 'center',
+              pt: 2,
+              pb: 0,
+            }}
+          >
             <Typography
               variant="subtitle3"
               fontWeight={600}
-              sx={{ mb: 1, color: theme.palette.secondary.main }}
+              sx={{
+                mb: 1,
+                color: theme.palette.text.secondary,
+              }}
             >
-              Categoria
+              Categorias
             </Typography>
-
-            {event.confirmedAthletes.length > 0 && (
-              <List dense>
-                {event.confirmedAthletes.map((athlete) => (
-                  <ListItem key={athlete.id}>
-                    <ListItemText primary={athlete.name} />
-                  </ListItem>
-                ))}
-              </List>
+            <Divider sx={{ my: 1, borderColor: theme.palette.divider }} />
+            {event.categories.length > 0 && (
+              <>
+                <List dense>
+                  {event.categories.map((category, index) => (
+                    <ListItem
+                      key={category.categoryId}
+                      sx={{
+                        width: '250px',
+                        textAlign: 'center',
+                        backgroundColor: getBackgroundColor(index),
+                        borderRadius: '8px',
+                        marginBottom: '8px',
+                        color: theme.palette.text.primary,
+                        m: 0.5,
+                      }}
+                    >
+                      <ListItemText
+                        primary={categoryLabels[category.categoryId] || 'Categoria desconhecida'}
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              </>
             )}
           </CardContent>
+
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, my: 2, width: '90%' }}>
+            <CustomButton variant="contained" color="warning" onClick={handleEditClick}>
+              Editar
+            </CustomButton>
+            <CustomButton variant="contained" color="error">
+              Apagar
+            </CustomButton>
+          </Box>
         </Box>
       </Collapse>
     </Card>
