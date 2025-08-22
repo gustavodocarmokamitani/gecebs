@@ -4,7 +4,7 @@ import {
   Typography,
   Divider,
   Box,
-  Button,
+  CircularProgress,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -17,93 +17,10 @@ import { useResponsive } from '../hooks/useResponsive';
 import CustomButton from '../components/common/CustomButton';
 import CustomInput from '../components/common/CustomInput';
 import { useNavigate } from 'react-router-dom';
-
-const atletas = [
-  {
-    id: 1,
-    firstName: 'Lucas',
-    lastName: 'Silva',
-    phone: '11999999999',
-    federationId: 'FED001',
-    birthDate: '2000-05-15T00:00:00.000Z',
-    shirtNumber: '10',
-    userId: 101,
-    categories: [
-      {
-        categoryId: 1,
-      },
-      {
-        categoryId: 2,
-      },
-    ],
-  },
-  {
-    id: 2,
-    firstName: 'Mariana',
-    lastName: 'Oliveira',
-    phone: '11988888888',
-    federationId: 'FED002',
-    birthDate: '1998-10-20T00:00:00.000Z',
-    shirtNumber: '7',
-    userId: 102,
-    categories: [
-      {
-        categoryId: 1,
-      },
-    ],
-  },
-  {
-    id: 3,
-    firstName: 'Pedro',
-    lastName: 'Santos',
-    phone: '11977777777',
-    federationId: 'FED003',
-    birthDate: '2002-03-08T00:00:00.000Z',
-    shirtNumber: '5',
-    userId: 103,
-    categories: [
-      {
-        categoryId: 2,
-      },
-      {
-        categoryId: 3,
-      },
-    ],
-  },
-  {
-    id: 4,
-    firstName: 'Ana',
-    lastName: 'Costa',
-    phone: '11966666666',
-    federationId: 'FED004',
-    birthDate: '1999-12-25T00:00:00.000Z',
-    shirtNumber: '9',
-    userId: 104,
-    categories: [
-      {
-        categoryId: 3,
-      },
-    ],
-  },
-  {
-    id: 5,
-    firstName: 'Rafael',
-    lastName: 'Lima',
-    phone: '11955555555',
-    federationId: 'FED005',
-    birthDate: '2001-07-11T00:00:00.000Z',
-    shirtNumber: '8',
-    userId: 105,
-    categories: [
-      {
-        categoryId: 1,
-      },
-      {
-        categoryId: 3,
-      },
-    ],
-  },
-];
+// 👈 Importe o serviço de categorias e o de atletas
+import CategoryService from '../services/Category';
+import AthleteService from '../services/Athlete';
+import { toast } from 'react-toastify';
 
 function Athlete() {
   const theme = useTheme();
@@ -112,55 +29,113 @@ function Athlete() {
   const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
   const navigate = useNavigate();
 
+  // 👈 Substituindo o mock por estados
+  const [athletes, setAthletes] = useState([]);
+  const [categories, setCategories] = useState([]); // Novo estado para as categorias
   const [groupedAthletes, setGroupedAthletes] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
 
   const handleAccordionChange = (panel) => (event, isExpanded) => {
     setExpanded(isExpanded ? panel : false);
   };
 
-  useEffect(() => {
-    const groupAthletesByCategory = (athletes) => {
-      const groups = {};
-      athletes.forEach((athlete) => {
-        athlete.categories.forEach((cat) => {
-          const categoryId = cat.categoryId;
-          if (!groups[categoryId]) {
-            groups[categoryId] = [];
-          }
-          groups[categoryId].push(athlete);
-        });
+  const groupAthletesByCategory = (allCategories, athletesToGroup) => {
+    const groups = {};
+    // Inicializa os grupos com as categorias conhecidas
+    allCategories.forEach((cat) => {
+      groups[cat.id] = {
+        name: cat.name,
+        athletes: [],
+      };
+    });
+
+    athletesToGroup.forEach((athlete) => {
+      athlete.categories.forEach((cat) => {
+        const categoryId = cat.category.id;
+        if (groups[categoryId]) {
+          groups[categoryId].athletes.push(athlete);
+        }
       });
-      return groups;
-    };
-
-    const filteredAthletes = atletas.filter(
-      (athlete) =>
-        athlete.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        athlete.lastName.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    setGroupedAthletes(groupAthletesByCategory(filteredAthletes));
-  }, [searchTerm]);
-
-  const categoryLabels = {
-    1: 'Adulto',
-    2: 'Sub-23',
-    3: 'Juvenil',
-    4: 'Junior',
-    5: 'Pré-Junior',
-    6: 'Infantil',
-    7: 'Pré-Infantil',
-    8: 'T-Bol',
+    });
+    return groups;
   };
+
+  const fetchAthletesAndCategories = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // 👈 Buscando atletas e categorias em paralelo
+      const [fetchedAthletes, fetchedCategories] = await Promise.all([
+        AthleteService.list(),
+        CategoryService.getAll(),
+      ]);
+      setAthletes(fetchedAthletes);
+      setCategories(fetchedCategories);
+    } catch (err) {
+      console.error('Erro ao buscar dados:', err);
+      setError('Erro ao carregar os dados. Tente novamente mais tarde.');
+      toast.error('Erro ao carregar os dados.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAthletesAndCategories();
+  }, []);
+
+  useEffect(() => {
+    if (athletes.length > 0 && categories.length > 0) {
+      const filteredAthletes = athletes.filter(
+        (athlete) =>
+          athlete.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          athlete.lastName.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setGroupedAthletes(groupAthletesByCategory(categories, filteredAthletes));
+    } else if (athletes.length === 0 && categories.length > 0) {
+      // Caso não haja atletas, mas há categorias, inicializa os grupos vazios
+      const emptyGroups = {};
+      categories.forEach((cat) => {
+        emptyGroups[cat.id] = {
+          name: cat.name,
+          athletes: [],
+        };
+      });
+      setGroupedAthletes(emptyGroups);
+    } else if (!isLoading && !error) {
+      // Se não está carregando e não há erro, mas não há dados
+      setGroupedAthletes({});
+    }
+  }, [athletes, categories, searchTerm]);
 
   const handleAddAthleteClick = () => {
     navigate('/athlete/new');
   };
 
+  // Funções de edição e exclusão (ajustadas para usar a API)
+  const handleEdit = (id) => {
+    navigate(`/athlete/edit/${id}`);
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Tem certeza que deseja excluir este atleta?')) {
+      try {
+        await AthleteService.remove(id);
+        toast.success('Atleta excluído com sucesso!');
+        fetchAthletesAndCategories(); // Recarrega os dados após a exclusão
+      } catch (err) {
+        console.error('Erro ao excluir atleta:', err);
+        toast.error('Erro ao excluir o atleta.');
+      }
+    }
+  };
+
   return (
     <Box>
+      {/* ... (cabeçalho, divider e input de busca) */}
       <Box
         sx={{
           display: 'flex',
@@ -213,60 +188,80 @@ function Athlete() {
       <Typography sx={{ my: 3 }} variant="h6" color="textSecondary">
         Atletas
       </Typography>
-      {Object.keys(groupedAthletes).map((categoryId, index) => {
-        const athletesInGroup = groupedAthletes[categoryId];
-        if (athletesInGroup.length === 0) return null;
 
-        return (
-          <Accordion
-            key={categoryId}
-            expanded={expanded === categoryId}
-            onChange={handleAccordionChange(categoryId)}
-            sx={{
-              mb: 2,
-              '&::before': {
-                display: 'none',
-                background: 'red',
-              },
-              ...(index === 0 && {
-                borderTopLeftRadius: theme.shape.borderRadius,
-                borderTopRightRadius: theme.shape.borderRadius,
-              }),
-            }}
-          >
-            <AccordionSummary
-              expandIcon={<ExpandMoreIcon />}
-              aria-controls={`panel-${categoryId}-content`}
-              id={`panel-${categoryId}-header`}
-              sx={{ borderBottom: 'none' }}
+      {isLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : error ? (
+        <Typography color="error" align="center">
+          {error}
+        </Typography>
+      ) : Object.keys(groupedAthletes).length === 0 ? (
+        <Typography color="text.secondary" align="center">
+          Nenhum atleta encontrado.
+        </Typography>
+      ) : (
+        Object.keys(groupedAthletes).map((categoryId, index) => {
+          const group = groupedAthletes[categoryId];
+          if (group.athletes.length === 0) return null;
+
+          return (
+            <Accordion
+              key={categoryId}
+              expanded={expanded === categoryId}
+              onChange={handleAccordionChange(categoryId)}
+              sx={{
+                mb: 2,
+                '&::before': {
+                  display: 'none',
+                },
+                ...(index === 0 && {
+                  borderTopLeftRadius: theme.shape.borderRadius,
+                  borderTopRightRadius: theme.shape.borderRadius,
+                }),
+              }}
             >
-              <Typography variant="h6" color="textPrimary">
-                {categoryLabels[categoryId]}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Box
-                sx={{
-                  display: 'flex',
-                  overflowX: 'auto',
-                  gap: 2,
-                  pb: 2,
-                  '&::-webkit-scrollbar': { height: 8 },
-                  '&::-webkit-scrollbar-thumb': {
-                    backgroundColor: theme.palette.primary.main,
-                    borderRadius: 4,
-                  },
-                  alignItems: 'flex-start',
-                }}
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                aria-controls={`panel-${categoryId}-content`}
+                id={`panel-${categoryId}-header`}
+                sx={{ borderBottom: 'none' }}
               >
-                {athletesInGroup.map((athlete) => (
-                  <AthleteCard key={athlete.id} event={athlete} />
-                ))}
-              </Box>
-            </AccordionDetails>
-          </Accordion>
-        );
-      })}
+                <Typography variant="h6" color="textPrimary">
+                  {group.name}
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    overflowX: 'auto',
+                    gap: 2,
+                    pb: 2,
+                    '&::-webkit-scrollbar': { height: 8 },
+                    '&::-webkit-scrollbar-thumb': {
+                      backgroundColor: theme.palette.primary.main,
+                      borderRadius: 4,
+                    },
+                    alignItems: 'flex-start',
+                  }}
+                >
+                  {group.athletes.map((athlete) => (
+                    // ⚠️ Certifique-se de passar as props `onEdit` e `onDelete` para o AthleteCard
+                    <AthleteCard
+                      key={athlete.id}
+                      athlete={athlete}
+                      onEdit={() => handleEdit(athlete.id)}
+                      onDelete={() => handleDelete(athlete.id)}
+                    />
+                  ))}
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+          );
+        })
+      )}
     </Box>
   );
 }

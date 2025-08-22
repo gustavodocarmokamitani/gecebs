@@ -23,6 +23,15 @@ const Auth = {
       throw error;
     }
   },
+
+  checkPhoneExists: async (phone) => {
+    try {
+      const response = await api.get(`/auth/phone-exists?phone=${phone}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 export default Auth;

@@ -163,4 +163,26 @@ router.get('/email-exists', async (req, res) => {
   }
 });
 
+/**
+ * Rota para verificar se um telefone já existe na base de dados
+ */
+router.get('/phone-exists', async (req, res) => {
+  try {
+    const { phone } = req.query; // Pega o telefone dos parâmetros da URL
+
+    const team = await prisma.team.findUnique({
+      where: { phone },
+    });
+
+    if (team) {
+      return res.status(200).json({ exists: true, message: 'Este telefone já está cadastrado.' });
+    }
+
+    return res.status(200).json({ exists: false, message: 'Telefone disponível.' });
+  } catch (err) {
+    console.error('Erro ao verificar o telefone:', err);
+    res.status(500).json({ message: 'Erro ao verificar o telefone.' });
+  }
+});
+
 export default router;

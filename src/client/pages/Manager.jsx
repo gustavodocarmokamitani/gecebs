@@ -33,41 +33,13 @@ const Manager = () => {
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
 
+  // 1. A função de busca agora usa o serviço real
   const fetchManagers = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const fetchedManagers = [
-        {
-          id: 1,
-          firstName: 'João',
-          lastName: 'Sousa',
-          phone: '11999999999',
-          userId: 101,
-          categories: [
-            { category: { id: 1, name: 'Adulto' } },
-            { category: { id: 2, name: 'Sub-23' } },
-            { category: { id: 3, name: 'Juvenil' } },
-            { category: { id: 4, name: 'Junior' } },
-          ],
-        },
-        {
-          id: 2,
-          firstName: 'Carlos',
-          lastName: 'Mota',
-          phone: '11988888888',
-          userId: 102,
-          categories: [{ category: { id: 1, name: 'Adulto' } }],
-        },
-        {
-          id: 3,
-          firstName: 'Marta',
-          lastName: 'Ferreira',
-          phone: '11977777777',
-          userId: 103,
-          categories: [{ category: { id: 3, name: 'Juvenil' } }],
-        },
-      ];
+      // 👈 Chama o serviço para buscar os managers do time
+      const fetchedManagers = await ManagerService.getAllTeamManagers();
       setManagers(fetchedManagers);
     } catch (err) {
       console.error('Erro ao buscar managers:', err);
@@ -95,7 +67,8 @@ const Manager = () => {
     if (isConfirmed) {
       try {
         await ManagerService.delete(managerId);
-        setManagers(managers.filter((manager) => manager.id !== managerId));
+        // Recarrega a lista após a exclusão para refletir a mudança
+        fetchManagers();
         toast.success('Manager excluído com sucesso.');
       } catch (err) {
         console.error('Erro ao excluir manager:', err);
@@ -104,7 +77,7 @@ const Manager = () => {
     }
   };
 
-  // Agrupar os managers por categoria
+  // Agrupar os managers por categoria (Esta lógica permanece a mesma pois já funciona com a estrutura de dados da API)
   const groupedManagers = managers.reduce((groups, manager) => {
     manager.categories.forEach((cat) => {
       const categoryId = cat.category.id;

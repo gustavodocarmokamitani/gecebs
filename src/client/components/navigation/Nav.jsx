@@ -7,6 +7,7 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import SettingsIcon from '@mui/icons-material/Settings';
 import SportsBaseballIcon from '@mui/icons-material/SportsBaseball';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import CategoryIcon from '@mui/icons-material/Category';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useResponsive } from '../../hooks/useResponsive';
 import NavItem from './NavItem';
@@ -60,6 +61,12 @@ const Nav = ({ open, onClose }) => {
           to="/analytics"
           primary="Analytics"
           icon={AnalyticsIcon}
+          onClick={isPermanent ? null : onClose}
+        />
+        <NavItem
+          to="/category"
+          primary="Gestão de Categoria"
+          icon={CategoryIcon}
           onClick={isPermanent ? null : onClose}
         />
         <NavItem

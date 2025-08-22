@@ -15,10 +15,12 @@ const Register = () => {
     name: '',
     email: '',
     password: '',
-    passwordConfirm: '', // Adicione esta propriedade ao estado
+    passwordConfirm: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
+  // Adicione um estado para o erro do telefone
+  const [phoneServerError, setPhoneServerError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   // Use o hook para gerenciar o input de telefone
@@ -33,23 +35,53 @@ const Register = () => {
     setShowPassword(!showPassword);
   };
 
+  // useEffect para verificar o e-mail
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
       if (formData.email) {
         try {
           const result = await Auth.checkEmailExists(formData.email);
           if (result.exists) {
-            setEmailError('Este email já está em uso.');
+            setEmailError('Este e-mail já está em uso.');
           } else {
             setEmailError('');
           }
         } catch (err) {
-          setEmailError('Não foi possível verificar o email.');
+          setEmailError('Não foi possível verificar o e-mail.');
         }
       }
     }, 500);
     return () => clearTimeout(timeoutId);
   }, [formData.email]);
+
+  // Novo useEffect para verificar o telefone
+  useEffect(() => {
+    const timeoutId = setTimeout(async () => {
+      // 1. Crie uma variável para o número de telefone limpo
+      const phoneToVerify = phoneNumber.replace(/\D/g, ''); // Remove tudo que não for dígito
+
+      if (phoneToVerify.length >= 10) {
+        // Garante que tem pelo menos 10 dígitos (com DDD)
+        try {
+          // 2. Use o número limpo na chamada da API
+          const result = await Auth.checkPhoneExists(phoneToVerify);
+          console.log(result);
+
+          if (result.exists) {
+            setPhoneServerError('Este telefone já está em uso.');
+          } else {
+            setPhoneServerError('');
+          }
+        } catch (err) {
+          setPhoneServerError('Não foi possível verificar o telefone.');
+        }
+      } else {
+        // Limpa o erro do servidor se o número não estiver completo
+        setPhoneServerError('');
+      }
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }, [phoneNumber]);
 
   const handleRegister = async (event) => {
     event.preventDefault();
@@ -69,8 +101,15 @@ const Register = () => {
       return;
     }
 
+    // Validação de telefone (do hook usePhoneInput) e do servidor
+    if (phoneError || phoneServerError) {
+      toast.error('Corrija os erros do telefone antes de continuar.');
+      setIsLoading(false);
+      return;
+    }
+
     // Verificação final de erros antes de enviar
-    if (emailError || phoneError) {
+    if (emailError) {
       toast.error('Corrija os erros do formulário antes de continuar.');
       setIsLoading(false);
       return;
@@ -153,9 +192,9 @@ const Register = () => {
               label="Confirmar Senha"
               placeholder="Confirmar Senha"
               id="password-confirm"
-              name="passwordConfirm" // Corrigido para corresponder ao estado
+              name="passwordConfirm"
               required
-              value={formData.passwordConfirm} // Corrigido para corresponder ao estado
+              value={formData.passwordConfirm}
               onChange={handleInputChange}
               type={showPassword ? 'text' : 'password'}
               InputProps={{
@@ -179,13 +218,13 @@ const Register = () => {
               placeholder="(00) 00000-0000"
               id="phone"
               name="phone"
-              value={phoneNumber} // Use o valor do hook aqui
-              onChange={handlePhoneChange} // Use a função do hook aqui
+              value={phoneNumber}
+              onChange={handlePhoneChange}
               disabled={isLoading}
-              error={!!phoneError}
-              helperText={phoneError}
+              // Combine os erros do hook e do servidor
+              error={!!phoneError || !!phoneServerError}
+              helperText={phoneError || phoneServerError}
             />
-            {isLoading ? 'Registrando...' : ''}
           </Grid>
           <Grid size={12}>
             <CustomButton
@@ -193,9 +232,9 @@ const Register = () => {
               type="submit"
               fullWidth
               sx={{ mt: 3, mb: 2, borderRadius: 3 }}
-              disabled={isLoading} // Desabilita o botão enquanto carrega
+              disabled={isLoading || !!emailError || !!phoneError || !!phoneServerError}
             >
-              Registrar Time
+              {isLoading ? 'Registrando...' : 'Registrar Time'}
             </CustomButton>
           </Grid>
           <Grid size={12} sx={{ textAlign: 'center' }}>

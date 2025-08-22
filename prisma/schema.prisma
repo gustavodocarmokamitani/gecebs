@@ -12,7 +12,7 @@ model Team {
   name         String     @unique
   email        String     @unique
   password     String
-  phone        String?
+  phone        String?    @unique
   image        String?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
@@ -43,7 +43,7 @@ model Athlete {
   id              Int               @id @default(autoincrement())
   firstName       String
   lastName        String
-  phone           String
+  phone           String            @unique
   federationId    String?
   confederationId String?
   birthDate       DateTime
@@ -59,7 +59,7 @@ model Manager {
   id              Int                 @id @default(autoincrement())
   firstName       String
   lastName        String
-  phone           String
+  phone           String              @unique
   
   userId          Int                 @unique
   user            User                @relation(fields: [userId], references: [id]) 

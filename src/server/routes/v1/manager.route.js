@@ -169,4 +169,46 @@ router.delete('/manager/:id', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * GET /manager/list-all
+ * Lista todos os managers de um time, incluindo as categorias que eles gerenciam.
+ * @access TEAM ou MANAGER
+ */
+router.get('/list-all', authenticateToken, async (req, res) => {
+  try {
+    const { teamId, role } = req.user;
+
+    if (role !== 'MANAGER' && role !== 'TEAM') {
+      return res
+        .status(403)
+        .json({ message: 'Acesso negado. Você não tem permissão para listar managers.' });
+    }
+
+    const managers = await prisma.manager.findMany({
+      where: {
+        user: {
+          teamId: teamId,
+        },
+      },
+      include: {
+        categories: {
+          select: {
+            category: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    res.status(200).json(managers);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao listar os managers.' });
+  }
+});
+
 export default router;

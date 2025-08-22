@@ -8,6 +8,53 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 /**
+ * GET /list-athletes
+ * Lista todos os atletas de um time.
+ * @access MANAGER ou TEAM
+ */
+router.get('/list-athletes', authenticateToken, async (req, res) => {
+  try {
+    const { teamId, role } = req.user;
+
+    // Apenas managers ou o dono do time podem listar atletas
+    if (role !== 'MANAGER' && role !== 'TEAM') {
+      return res.status(403).json({
+        message: 'Acesso negado. Apenas managers e o proprietário da equipe podem ver os atletas.',
+      });
+    }
+
+    const athletes = await prisma.athlete.findMany({
+      where: {
+        user: {
+          teamId: teamId,
+        },
+      },
+      // Inclui os dados do usuário para ter acesso ao `username` (telefone) e `role`
+      include: {
+        user: {
+          select: {
+            username: true,
+            email: true,
+            role: true,
+          },
+        },
+        // Inclui as categorias para o agrupamento no frontend
+        categories: {
+          include: {
+            category: true,
+          },
+        },
+      },
+    });
+
+    res.status(200).json(athletes);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao listar os atletas.' });
+  }
+});
+
+/**
  * POST /create-athlete
  * Cria um novo usuário (atleta) para o time.
  */

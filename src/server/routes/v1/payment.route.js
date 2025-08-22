@@ -6,6 +6,62 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 /**
+ * GET /payment/list-all-team-payments
+ * Lista todos os pagamentos criados para um time.
+ */
+router.get('/list-all-team-payments', authenticateToken, async (req, res) => {
+  try {
+    const { teamId, role } = req.user;
+
+    if (role !== 'MANAGER' && role !== 'TEAM') {
+      return res.status(403).json({
+        message: 'Acesso negado. Apenas managers ou equipes podem listar os pagamentos do time.',
+      });
+    }
+
+    const payments = await prisma.payment.findMany({
+      where: {
+        teamId: teamId,
+      },
+      orderBy: {
+        dueDate: 'desc',
+      },
+      include: {
+        category: true,
+        paidBy: {
+          include: {
+            user: {
+              include: {
+                // Seleciona os dados do atleta, incluindo firstName e lastName
+                athlete: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
+                // Seleciona os dados do manager, incluindo firstName e lastName
+                manager: {
+                  select: {
+                    firstName: true,
+                    lastName: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        items: true,
+      },
+    });
+
+    res.status(200).json(payments);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao listar os pagamentos do time.' });
+  }
+});
+
+/**
  * GET /payment/:id
  * Busca um pagamento específico por ID, incluindo seus itens.
  */

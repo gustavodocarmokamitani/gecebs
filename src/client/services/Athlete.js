@@ -2,6 +2,18 @@ import api from './api';
 
 const Athlete = {
   /**
+   * Lista todos os atletas do time.
+   */
+  list: async () => {
+    try {
+      const response = await api.get('/athlete/list-athletes');
+      return response.data;
+    } catch (error) {
+      console.error('Erro no serviço de atletas (list):', error);
+      throw error;
+    }
+  },
+  /**
    * Cria um novo atleta.
    * @param {object} athleteData - Dados do atleta.
    */

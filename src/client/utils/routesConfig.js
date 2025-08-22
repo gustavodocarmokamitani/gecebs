@@ -4,12 +4,17 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import SportsBaseballIcon from '@mui/icons-material/SportsBaseball';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import CategoryIcon from '@mui/icons-material/Category';
 import LogoutIcon from '@mui/icons-material/Logout';
 
 const routesConfig = {
   '/analytics': {
     title: 'Analytics',
     icon: AnalyticsIcon,
+  },
+  '/category': {
+    title: 'Gestão de Categorias',
+    icon: CategoryIcon,
   },
   '/manager': {
     title: 'Gestão de Manager',

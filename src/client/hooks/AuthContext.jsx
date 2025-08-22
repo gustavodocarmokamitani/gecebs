@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import { toast } from 'react-toastify';
+import { jwtDecode } from 'jwt-decode';
 import Auth from '../services/Auth';
 
 const AuthContext = createContext(null);
@@ -9,17 +10,35 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true); // 👈 Adicione o estado de carregamento
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Função para verificar se o token JWT é válido
+  const isTokenValid = (token) => {
+    try {
+      const decoded = jwtDecode(token);
+      return decoded.exp * 1000 > Date.now();
+    } catch (error) {
+      return false;
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     const storedUser = localStorage.getItem('user');
 
-    if (token && storedUser) {
+    if (token && storedUser && isTokenValid(token)) {
       setIsAuthenticated(true);
       setUser(JSON.parse(storedUser));
+    } else if (token) {
+      // 👈  Verifique se o token existe antes de deslogar
+      // Se o token existe, mas é inválido, deslogue e mostre a mensagem
+      logout(true); // Passe um argumento para indicar que a sessão expirou
+    } else {
+      // Se não houver token, apenas finalize o carregamento sem deslogar
+      setIsAuthenticated(false);
+      setUser(null);
     }
-    setIsLoading(false); // 👈 Finaliza o carregamento após a verificação
+    setIsLoading(false);
   }, []);
 
   const login = async (credentials) => {
@@ -37,20 +56,24 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  // Ajuste a função logout para ser mais flexível
+  const logout = (showToast = false) => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
     setIsAuthenticated(false);
     setUser(null);
-    toast.info('Você foi desconectado.');
+    if (showToast) {
+      // 👈 Exibe a mensagem apenas quando a sessão realmente expira
+      toast.info('Sessão expirada. Por favor, faça login novamente.');
+    }
   };
 
   const authValue = {
     isAuthenticated,
     user,
     login,
-    logout,
-    isLoading, // 👈 Exponha o estado de carregamento
+    logout: () => logout(false), // Ajuste a chamada de logout para o resto do app
+    isLoading,
   };
 
   return <AuthContext.Provider value={authValue}>{children}</AuthContext.Provider>;

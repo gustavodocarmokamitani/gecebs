@@ -14,6 +14,8 @@ import Athlete from './pages/Athlete.jsx';
 import AthleteForm from './pages/AthleteForm.jsx';
 import Manager from './pages/Manager.jsx';
 import ManagerForm from './pages/ManagerForm.jsx';
+import Category from './pages/Category.jsx';
+import CategoryForm from './pages/CategoryForm.jsx';
 import Payment from './pages/Payment.jsx';
 import PaymentForm from './pages/PaymentForm.jsx';
 import PaymentItemForm from './pages/PaymentItemForm.jsx';
@@ -46,6 +48,9 @@ if (root !== null) {
                   <Route path="athlete" element={<Athlete />} />
                   <Route path="athlete/new" element={<AthleteForm />} />
                   <Route path="athlete/edit/:athleteId" element={<AthleteForm />} />
+                  <Route path="category" element={<Category />} />
+                  <Route path="category/new" element={<CategoryForm />} />
+                  <Route path="category/edit/:categoryId" element={<CategoryForm />} />
                   <Route path="manager" element={<Manager />} />
                   <Route path="manager/new" element={<ManagerForm />} />
                   <Route path="manager/edit/:managerId" element={<ManagerForm />} />
