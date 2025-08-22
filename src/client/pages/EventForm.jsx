@@ -1,50 +1,29 @@
-// src/pages/EventForm.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, Divider, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Divider,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  CircularProgress,
+} from '@mui/material';
 import CustomInput from '../components/common/CustomInput';
 import CustomButton from '../components/common/CustomButton';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useTheme } from '@mui/material/styles';
 import { useResponsive } from '../hooks/useResponsive';
-// Importe o serviço de eventos
-import EventService from '../services/Event'; // O nome do arquivo pode variar (ex: Event.js)
+import EventService from '../services/Event';
+import CategoryService from '../services/Category';
+import { toast } from 'react-toastify';
 
-// Dados de exemplo para simular a tabela de categorias e tipos de evento
+// Dados que não mudam e podem ficar aqui
 const eventTypes = [
   { value: 'TRAINING', label: 'Treinamento' },
   { value: 'CHAMPIONSHIP', label: 'Campeonato' },
-];
-
-const categories = [
-  { id: 1, name: 'Adulto' },
-  { id: 2, name: 'Sub-23' },
-  { id: 3, name: 'Juvenil' },
-  { id: 4, name: 'Junior' },
-  { id: 5, name: 'Pré-Junior' },
-  { id: 6, name: 'Infantil' },
-  { id: 7, name: 'Pré-Infantil' },
-  { id: 8, name: 'T-Bol' },
-];
-
-// Dados de exemplo para simular edição
-const eventos = [
-  {
-    id: 1,
-    name: 'Campeonato Nacional de Karatê',
-    date: '2025-11-15T00:00:00.000Z',
-    location: 'Ginásio do Ibirapuera, São Paulo - SP',
-    type: 'CHAMPIONSHIP',
-    categoryId: 1,
-  },
-  {
-    id: 2,
-    name: 'Treinamento de Verão - Dojo Central',
-    date: '2026-01-20T00:00:00.000Z',
-    location: 'Dojo Central da Federação',
-    type: 'TRAINING',
-    categoryId: 2,
-  },
+  { value: 'OTHER', label: 'Outros' },
 ];
 
 const EventForm = () => {
@@ -55,7 +34,6 @@ const EventForm = () => {
   const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
 
   const isEditing = !!eventId;
-  const eventToEdit = isEditing ? eventos.find((e) => e.id === parseInt(eventId)) : null;
 
   const [formData, setFormData] = useState({
     name: '',
@@ -66,27 +44,51 @@ const EventForm = () => {
     categoryId: '',
   });
 
-  useEffect(() => {
-    if (isEditing && eventToEdit) {
-      setFormData({
-        name: eventToEdit.name,
-        description: eventToEdit.description || '',
-        date: eventToEdit.date.split('T')[0],
-        location: eventToEdit.location || '',
-        type: eventToEdit.type,
-        categoryId: eventToEdit.categoryId,
-      });
-    } else {
-      setFormData({
-        name: '',
-        description: '',
-        date: '',
-        location: '',
-        type: '',
-        categoryId: '',
-      });
+  const [categories, setCategories] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Função para buscar as categorias do backend
+  const fetchCategories = async () => {
+    try {
+      const fetchedCategories = await CategoryService.listAllTeamCategories();
+      setCategories(fetchedCategories);
+      console.log(fetchedCategories);
+    } catch (err) {
+      console.error('Erro ao buscar categorias:', err);
+      toast.error('Erro ao carregar as categorias.');
     }
-  }, [eventId, isEditing, eventToEdit]);
+  };
+
+  // Função para buscar os dados do evento para edição
+  const fetchEventData = async () => {
+    setIsLoading(true);
+    try {
+      const fetchedEvent = await EventService.getById(eventId);
+      if (fetchedEvent) {
+        setFormData({
+          name: fetchedEvent.name,
+          description: fetchedEvent.description || '',
+          date: new Date(fetchedEvent.date).toISOString().split('T')[0],
+          location: fetchedEvent.location || '',
+          type: fetchedEvent.type,
+          categoryId: fetchedEvent.categoryId,
+        });
+      }
+    } catch (err) {
+      console.error('Erro ao buscar evento:', err);
+      toast.error('Erro ao carregar os dados do evento para edição.');
+      navigate('/event'); // Redireciona em caso de erro
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+    if (isEditing) {
+      fetchEventData();
+    }
+  }, [isEditing, eventId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -95,25 +97,34 @@ const EventForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     try {
       if (isEditing) {
-        // Lógica de edição
-        console.log('Dados para edição:', formData);
-        // await EventService.update(eventId, formData); // Chamada para o serviço de edição
+        await EventService.update(eventId, formData);
+        toast.success('Evento atualizado com sucesso!');
       } else {
-        // Lógica de criação
-        console.log('Dados para criação:', formData);
-        await EventService.create(formData); // Chamada para o serviço de criação
-        console.log('Evento criado com sucesso!');
+        await EventService.create(formData);
+        toast.success('Evento criado com sucesso!');
       }
       navigate('/event');
     } catch (error) {
       console.error('Erro ao salvar o evento:', error);
-      // Aqui você pode adicionar um feedback ao usuário (e.g., um alerta ou snackbar)
+      toast.error(`Erro ao salvar o evento: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const title = isEditing ? 'Editar Evento' : 'Adicionar Evento';
+
+  // Renderiza um spinner enquanto os dados estão sendo buscados
+  if (isLoading && isEditing) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -238,11 +249,12 @@ const EventForm = () => {
                 onChange={handleChange}
                 required
               >
-                {categories.map((cat) => (
-                  <MenuItem key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </MenuItem>
-                ))}
+                {Array.isArray(categories) &&
+                  categories.map((cat) => (
+                    <MenuItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </MenuItem>
+                  ))}
               </Select>
             </FormControl>
           </Box>
@@ -257,8 +269,8 @@ const EventForm = () => {
           </Box>
         </Box>
         <Box sx={{ mt: 2 }}>
-          <CustomButton fullWidth type="submit" variant="contained">
-            Salvar
+          <CustomButton fullWidth type="submit" variant="contained" disabled={isLoading}>
+            {isLoading ? <CircularProgress size={24} /> : 'Salvar'}
           </CustomButton>
         </Box>
       </Box>

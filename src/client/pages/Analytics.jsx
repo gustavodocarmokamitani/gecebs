@@ -1,3 +1,5 @@
+// src/pages/Analytics.jsx
+
 import React, { useState, useEffect } from 'react';
 import AnalyticsEventCard from '../components/card/AnalyticsEventCard';
 import {
@@ -11,7 +13,6 @@ import {
 import { useTheme } from '@mui/material/styles';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-
 import Event from '../services/Event';
 import CategoryService from '../services/Category';
 import { toast } from 'react-toastify';
@@ -27,47 +28,18 @@ function Analytics() {
     setExpanded(isExpanded ? panel : false);
   };
 
-  const adaptEvent = (event) => {
-    const confirmedAthletes = [];
-    const unconfirmedAthletes = [];
+  // REMOÇÃO: A função adaptEvent não é mais necessária aqui.
+  // A responsabilidade de buscar os atletas será do AnalyticsEventCard.
 
-    if (event.confirmations && event.confirmations[0] && event.confirmations[0].confirmedBy) {
-      event.confirmations[0].confirmedBy.forEach((entry) => {
-        const athlete = {
-          id: entry.user.id,
-          name: `${entry.user.firstName} ${entry.user.lastName}`,
-        };
-        if (entry.status) {
-          confirmedAthletes.push(athlete);
-        } else {
-          unconfirmedAthletes.push(athlete);
-        }
-      });
-    }
-
-    return {
-      id: event.id,
-      name: event.name,
-      description: event.description,
-      date: event.date,
-      location: event.location,
-      confirmedAthletes,
-      unconfirmedAthletes,
-    };
-  };
-
-  // Funções para buscar os dados
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      // Busca categorias e eventos em paralelo para otimizar o tempo
       const [eventsData, categoriesData] = await Promise.all([
         Event.listAllTeamEvents(),
         CategoryService.getAll(),
       ]);
-
       setEvents(eventsData);
-      setCategories(categoriesData); // 👈 Atualize o estado das categorias
+      setCategories(categoriesData);
     } catch (error) {
       console.error('Erro ao carregar dados de analytics:', error);
       toast.error('Não foi possível carregar os dados. Tente novamente.');
@@ -80,13 +52,6 @@ function Analytics() {
     fetchData();
   }, []);
 
-  // Cria um mapa de categorias dinâmico
-  const categoryMap = categories.reduce((acc, category) => {
-    acc[category.id] = category.name;
-    return acc;
-  }, {});
-
-  // Agrupa os eventos pelas categorias
   const eventsByCategory = events.reduce((acc, event) => {
     const categoryId = event.categoryId;
     if (!acc[categoryId]) {
@@ -132,11 +97,9 @@ function Analytics() {
           Nenhum evento encontrado.
         </Typography>
       ) : (
-        // Mapeie sobre os IDs das categorias para garantir a ordem e a exibição correta
         categories.map((category) => {
-          const categorizedEvents = eventsByCategory[category.id] || []; // 👈 Pega os eventos da categoria, se existirem
+          const categorizedEvents = eventsByCategory[category.id] || [];
 
-          // Renderize o acordeão apenas se houver eventos para a categoria
           if (categorizedEvents.length > 0) {
             return (
               <Accordion
@@ -170,7 +133,7 @@ function Analytics() {
                     }}
                   >
                     {categorizedEvents.map((event) => (
-                      <AnalyticsEventCard key={event.id} event={adaptEvent(event)} />
+                      <AnalyticsEventCard key={event.id} event={event} />
                     ))}
                   </Box>
                 </AccordionDetails>

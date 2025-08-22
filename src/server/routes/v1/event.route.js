@@ -5,6 +5,74 @@ import { authenticateToken } from '../../middleware/auth.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+router.get('/athletes/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const eventId = parseInt(id);
+    const { teamId } = req.user;
+
+    // 1. Encontrar o evento para pegar o categoryId
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { categoryId: true },
+    });
+
+    if (!event) {
+      return res.status(404).json({ message: 'Evento não encontrado.' });
+    }
+
+    // 2. Encontrar todos os atletas do time e da categoria do evento
+    // Mudar a query principal para o modelo 'Athlete'
+    const athletes = await prisma.athlete.findMany({
+      where: {
+        user: {
+          teamId: teamId,
+          role: 'ATHLETE',
+        },
+        categories: {
+          some: {
+            categoryId: event.categoryId,
+          },
+        },
+      },
+      select: {
+        userId: true,
+        firstName: true,
+        lastName: true,
+        user: {
+          select: {
+            // Seleciona a confirmação do usuário para o evento específico
+            confirmations: {
+              where: {
+                confirmation: {
+                  eventId: eventId,
+                },
+              },
+              select: {
+                status: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Mapeia os dados para um formato mais fácil de usar no frontend
+    const result = athletes.map((athlete) => ({
+      userId: athlete.userId,
+      firstName: athlete.firstName,
+      lastName: athlete.lastName,
+      // Se houver uma confirmação, pega o status, senão assume false (não confirmado)
+      status: athlete.user.confirmations[0]?.status || false,
+    }));
+
+    res.status(200).json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao buscar atletas do evento.' });
+  }
+});
+
 /**
  * GET /event/list-all-team-events
  * Lista todos os eventos criados para um time.
@@ -15,12 +83,9 @@ router.get('/list-all-team-events', authenticateToken, async (req, res) => {
 
     // Apenas managers e equipes podem ver todos os eventos do time
     if (role !== 'MANAGER' && role !== 'TEAM') {
-      return res
-        .status(403)
-        .json({
-          message:
-            'Acesso negado. Apenas managers e equipes podem listar todos os eventos do time.',
-        });
+      return res.status(403).json({
+        message: 'Acesso negado. Apenas managers e equipes podem listar todos os eventos do time.',
+      });
     }
 
     const events = await prisma.event.findMany({
@@ -99,7 +164,7 @@ router.post('/create', authenticateToken, async (req, res) => {
     const { name, description, date, location, type, categoryId } = req.body;
     const { teamId, role } = req.user;
 
-    // Apenas managers podem criar eventos
+    // Apenas managers e equipes podem criar eventos
     if (role !== 'MANAGER' && role !== 'TEAM') {
       return res
         .status(403)
@@ -157,6 +222,47 @@ router.post('/create', authenticateToken, async (req, res) => {
 });
 
 /**
+ * GET /event/get-by-id/:id
+ * Busca um evento específico por ID.
+ */
+router.get('/get-by-id/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { teamId, role } = req.user;
+
+    // Apenas managers e equipes podem acessar eventos do próprio time
+    if (role !== 'MANAGER' && role !== 'TEAM') {
+      return res.status(403).json({
+        message: 'Acesso negado. Apenas managers e equipes podem acessar eventos do time.',
+      });
+    }
+
+    const eventId = parseInt(id);
+
+    const event = await prisma.event.findUnique({
+      where: {
+        id: eventId,
+        teamId: teamId, // Garante que o evento pertence ao time do usuário
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    if (!event) {
+      return res
+        .status(404)
+        .json({ message: 'Evento não encontrado ou não pertence ao seu time.' });
+    }
+
+    res.status(200).json(event);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao buscar o evento.' });
+  }
+});
+
+/**
  * PATCH /event/update/:id
  * Atualiza os dados de um evento existente.
  */
@@ -166,7 +272,7 @@ router.patch('/update/:id', authenticateToken, async (req, res) => {
     const { name, description, date, location, type } = req.body;
     const { teamId, role } = req.user;
 
-    // Apenas managers podem atualizar eventos
+    // Apenas managers e equipes podem atualizar eventos
     if (role !== 'MANAGER' && role !== 'TEAM') {
       return res
         .status(403)
@@ -221,7 +327,7 @@ router.delete('/delete/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const { teamId, role } = req.user;
 
-    // Apenas managers podem deletar eventos
+    // Apenas managers e equipes podem deletar eventos
     if (role !== 'MANAGER' && role !== 'TEAM') {
       return res
         .status(403)

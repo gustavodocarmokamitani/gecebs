@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+// src/components/card/EventCard.jsx
+
+import React, { useState, useEffect } from 'react'; // Importe o useEffect
 import {
   Card,
   CardContent,
@@ -10,6 +12,7 @@ import {
   ListItemText,
   Collapse,
   Divider,
+  CircularProgress, // Importe o CircularProgress
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTheme } from '@mui/material/styles';
@@ -18,13 +21,16 @@ import { useResponsive } from '../../hooks/useResponsive';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
 import CustomButton from '../common/CustomButton';
+import EventService from '../../services/Event'; // Importe o serviço de eventos
+import { toast } from 'react-toastify';
 
 // Componente do Card de Evento Colapsável
-const EventCard = ({ event }) => {
+const EventCard = ({ event, onDelete }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [athletes, setAthletes] = useState([]); // Novo estado para atletas
+  const [isLoading, setIsLoading] = useState(false); // Novo estado para carregamento
   const theme = useTheme();
   const navigate = useNavigate();
-
   const deviceType = useResponsive();
   const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
 
@@ -36,12 +42,31 @@ const EventCard = ({ event }) => {
     return index % 2 === 0 ? '#2c2c2c' : '#050505';
   };
 
-  // Coleta todos os usuários de todas as confirmações
-  const allUsers = event.confirmations.flatMap((confirmation) => confirmation.confirmedBy || []);
-
   const handleEditClick = () => {
     navigate(`/event/edit/${event.id}`);
   };
+
+  // Use useEffect para buscar os atletas quando o card for expandido
+  useEffect(() => {
+    if (isExpanded && event?.id) {
+      const fetchAthletes = async () => {
+        setIsLoading(true);
+        try {
+          // Chama o novo método da API
+          const fetchedAthletes = await EventService.getConfirmedAthletes(event.id);
+
+          setAthletes(fetchedAthletes);
+        } catch (error) {
+          console.error('Erro ao buscar atletas do evento:', error);
+          toast.error('Erro ao carregar a lista de atletas.');
+          setAthletes([]);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchAthletes();
+    }
+  }, [isExpanded, event?.id]);
 
   return (
     <Card
@@ -92,18 +117,6 @@ const EventCard = ({ event }) => {
           >
             {new Intl.DateTimeFormat('pt-BR').format(new Date(event.date))}
           </Typography>
-          <Typography
-            variant="p"
-            color={theme.palette.text.secondary}
-            component="div"
-            fontWeight={300}
-          >
-            Atletas:
-            <span style={{ color: theme.palette.secondary.main, fontWeight: '600' }}>
-              {' '}
-              {allUsers.length}{' '}
-            </span>
-          </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <IconButton
@@ -140,11 +153,16 @@ const EventCard = ({ event }) => {
               Lista de Atletas
             </Typography>
             <Divider sx={{ my: 1, borderColor: theme.palette.divider }} />
-            {allUsers.length > 0 && (
+            {isLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                <CircularProgress size={24} />
+              </Box>
+            ) : // CORREÇÃO AQUI: Verifique se athletes é uma array antes de renderizar
+            Array.isArray(athletes) && athletes.length > 0 ? (
               <List dense>
-                {allUsers.map((confirmationUser, index) => (
+                {athletes.map((athlete, index) => (
                   <ListItem
-                    key={confirmationUser.userId}
+                    key={athlete.userId}
                     sx={{
                       width: '250px',
                       textAlign: 'center',
@@ -159,37 +177,30 @@ const EventCard = ({ event }) => {
                     }}
                   >
                     <ListItemText
-                      primary={`${confirmationUser.user.firstName} ${confirmationUser.user.lastName}`}
-                      secondary={confirmationUser.status ? 'Confirmado' : 'Pendente'}
+                      primary={`${athlete.firstName} ${athlete.lastName}`}
+                      secondary={athlete.status ? 'Confirmado' : 'Pendente'}
                     />
                     <Box
                       sx={{
-                        color: confirmationUser.status
+                        color: athlete.status
                           ? theme.palette.success.main
                           : theme.palette.warning.main,
                         display: 'flex',
                         alignItems: 'center',
                       }}
                     >
-                      {confirmationUser.status ? (
-                        <CheckCircleOutlineIcon />
-                      ) : (
-                        <PanoramaFishEyeIcon />
-                      )}
+                      {athlete.status ? <CheckCircleOutlineIcon /> : <PanoramaFishEyeIcon />}
                     </Box>
                   </ListItem>
                 ))}
               </List>
+            ) : (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                Nenhum atleta nesta categoria.
+              </Typography>
             )}
           </CardContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, my: 2, width: '90%' }}>
-            <CustomButton variant="contained" color="warning" onClick={handleEditClick}>
-              Editar
-            </CustomButton>
-            <CustomButton variant="contained" color="error">
-              Apagar
-            </CustomButton>
-          </Box>
+          {/* ... (código restante do card) */}
         </Box>
       </Collapse>
     </Card>

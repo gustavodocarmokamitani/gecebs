@@ -13,6 +13,19 @@ const CategoryService = {
     }
   },
 
+  /**
+   * Lista todas as categorias de um time.
+   * Rota: GET /category/list-all-team-categories
+   */
+  listAllTeamCategories: async () => {
+    try {
+      const response = await api.get('/categories/list-all-team-categories');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Cria uma nova categoria
   create: async (categoryData) => {
     try {

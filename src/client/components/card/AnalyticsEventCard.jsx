@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+// src/client/components/card/AnalyticsEventCard.jsx
+
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -10,16 +12,20 @@ import {
   ListItemText,
   Collapse,
   Divider,
+  CircularProgress,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTheme } from '@mui/material/styles';
 import { useResponsive } from '../../hooks/useResponsive';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
+import EventService from '../../services/Event';
+import { toast } from 'react-toastify';
 
-// Componente do Card de Evento Colapsável
-const EventCard = ({ event }) => {
+const AnalyticsEventCard = ({ event }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [athletes, setAthletes] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const theme = useTheme();
 
   const deviceType = useResponsive();
@@ -33,7 +39,25 @@ const EventCard = ({ event }) => {
     return index % 2 === 0 ? '#2c2c2c' : '#050505';
   };
 
-  const allAthletes = [...event.confirmedAthletes, ...event.unconfirmedAthletes];
+  useEffect(() => {
+    if (isExpanded && event?.id) {
+      const fetchAthletes = async () => {
+        setIsLoading(true);
+        try {
+          // Chama a API para buscar atletas
+          const fetchedAthletes = await EventService.getConfirmedAthletes(event.id);
+          setAthletes(fetchedAthletes);
+        } catch (error) {
+          console.error('Erro ao buscar atletas do evento:', error);
+          toast.error('Erro ao carregar a lista de atletas.');
+          setAthletes([]);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchAthletes();
+    }
+  }, [isExpanded, event?.id]);
 
   return (
     <Card
@@ -84,18 +108,6 @@ const EventCard = ({ event }) => {
           >
             {new Intl.DateTimeFormat('pt-BR').format(new Date(event.date))}
           </Typography>
-          <Typography
-            variant="p"
-            color={theme.palette.text.secondary}
-            component="div"
-            fontWeight={300}
-          >
-            Atletas:
-            <span style={{ color: theme.palette.secondary.main, fontWeight: '600' }}>
-              {' '}
-              {allAthletes.length}{' '}
-            </span>
-          </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <IconButton
@@ -132,7 +144,11 @@ const EventCard = ({ event }) => {
               Lista de Atletas
             </Typography>
             <Divider sx={{ my: 1, borderColor: theme.palette.divider }} />
-            {allAthletes.length > 0 && (
+            {isLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                <CircularProgress size={24} />
+              </Box>
+            ) : Array.isArray(athletes) && athletes.length > 0 ? (
               <List
                 dense
                 sx={{
@@ -146,43 +162,44 @@ const EventCard = ({ event }) => {
                   },
                 }}
               >
-                {allAthletes.map((athlete, index) => {
-                  const isConfirmed = event.confirmedAthletes.some((a) => a.id === athlete.id);
-                  return (
-                    <ListItem
-                      key={athlete.id}
+                {athletes.map((athlete, index) => (
+                  <ListItem
+                    key={athlete.userId}
+                    sx={{
+                      width: '250px',
+                      textAlign: 'center',
+                      backgroundColor: getBackgroundColor(index),
+                      borderRadius: '8px',
+                      marginBottom: '8px',
+                      color: theme.palette.text.primary,
+                      m: 0.5,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <ListItemText
+                      primary={`${athlete.firstName} ${athlete.lastName}`}
+                      secondary={athlete.status ? 'Confirmado' : 'Pendente'}
+                    />
+                    <Box
                       sx={{
-                        width: '250px',
-                        textAlign: 'center',
-                        backgroundColor: getBackgroundColor(index),
-                        borderRadius: '8px',
-                        marginBottom: '8px',
-                        color: theme.palette.text.primary,
-                        m: 0.5,
+                        color: athlete.status
+                          ? theme.palette.success.main
+                          : theme.palette.warning.main,
                         display: 'flex',
-                        justifyContent: 'space-between',
                         alignItems: 'center',
                       }}
                     >
-                      <ListItemText
-                        primary={athlete.name}
-                        secondary={isConfirmed ? 'Confirmado' : 'Pendente'}
-                      />
-                      <Box
-                        sx={{
-                          color: isConfirmed
-                            ? theme.palette.success.main
-                            : theme.palette.warning.main,
-                          display: 'flex',
-                          alignItems: 'center',
-                        }}
-                      >
-                        {isConfirmed ? <CheckCircleOutlineIcon /> : <PanoramaFishEyeIcon />}
-                      </Box>
-                    </ListItem>
-                  );
-                })}
+                      {athlete.status ? <CheckCircleOutlineIcon /> : <PanoramaFishEyeIcon />}
+                    </Box>
+                  </ListItem>
+                ))}
               </List>
+            ) : (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                Nenhum atleta nesta categoria.
+              </Typography>
             )}
           </CardContent>
         </Box>
@@ -191,4 +208,4 @@ const EventCard = ({ event }) => {
   );
 };
 
-export default EventCard;
+export default AnalyticsEventCard;

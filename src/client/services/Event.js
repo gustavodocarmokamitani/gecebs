@@ -17,6 +17,20 @@ const Event = {
   },
 
   /**
+   * Busca os atletas de um evento e seus status de confirmação.
+   * Rota: GET /event/athletes/:id
+   * @param {number} eventId - ID do evento.
+   */
+  getConfirmedAthletes: async (eventId) => {
+    try {
+      const response = await api.get(`/event/athletes/${eventId}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
    * Lista todos os eventos criados para o time do manager.
    * Rota: GET /event/list-all-team-events
    */
@@ -36,6 +50,20 @@ const Event = {
   listMyEvents: async () => {
     try {
       const response = await api.get('/event/list-all-events-athletics');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Busca um evento específico por ID.
+   * Rota: GET /event/get-by-id/:id
+   * @param {number} id - ID do evento a ser buscado.
+   */
+  getById: async (id) => {
+    try {
+      const response = await api.get(`/event/get-by-id/${id}`);
       return response.data;
     } catch (error) {
       throw error;

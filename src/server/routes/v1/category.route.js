@@ -40,6 +40,39 @@ router.post('/create', authenticateToken, async (req, res) => {
 });
 
 /**
+ * GET /category/list-all-team-categories
+ * Lista todas as categorias de um time.
+ * Essa rota pode estar em um arquivo de rotas separado, mas para simplicidade, vamos adicioná-la aqui.
+ */
+
+router.get('/list-all-team-categories', authenticateToken, async (req, res) => {
+  try {
+    const { teamId } = req.user;
+
+    if (!teamId) {
+      console.error('ID do time não encontrado no objeto do usuário autenticado.');
+      return res
+        .status(401)
+        .json({ message: 'Acesso não autorizado. O usuário não está associado a um time.' });
+    }
+
+    const categories = await prisma.category.findMany({
+      where: {
+        teamId: teamId,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+
+    res.status(200).json(categories);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao listar as categorias do time.' });
+  }
+});
+
+/**
  * GET /list
  * Lista todas as categorias de um time.
  * @access MANAGER ou TEAM
