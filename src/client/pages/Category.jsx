@@ -25,8 +25,9 @@ import { useResponsive } from '../hooks/useResponsive';
 const Category = () => {
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [expanded, setExpanded] = useState(false);
-  const [error, setError] = useState(null); // Adiciona estado de erro
+  const [expanded, setExpanded] = useState('all-categories');
+
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
   const theme = useTheme();
   const deviceType = useResponsive();
@@ -63,8 +64,8 @@ const Category = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir esta categoria?')) {
       try {
-        await CategoryService.remove(id); // Chama o serviço de API para remover
-        fetchCategories(); // Recarrega a lista após a exclusão
+        await CategoryService.remove(id);
+        fetchCategories();
         toast.success('Categoria excluída com sucesso!');
       } catch (err) {
         console.error('Erro ao excluir categoria:', err);
@@ -147,9 +148,14 @@ const Category = () => {
             <Box
               sx={{
                 display: 'flex',
-                flexDirection: 'column',
+                flexDirection: isMobile ? 'column' : 'row',
+                flexWrap: isMobile ? 'nowrap' : 'wrap',
                 gap: 2,
                 alignItems: 'center',
+                justifyContent: isMobile ? 'center' : 'start',
+                ...(isMobile && {
+                  overflowX: 'hidden',
+                }),
               }}
             >
               {categories.map((category) => (

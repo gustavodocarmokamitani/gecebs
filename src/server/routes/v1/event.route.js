@@ -13,11 +13,14 @@ router.get('/list-all-team-events', authenticateToken, async (req, res) => {
   try {
     const { teamId, role } = req.user;
 
-    // Apenas managers podem ver todos os eventos do time
+    // Apenas managers e equipes podem ver todos os eventos do time
     if (role !== 'MANAGER' && role !== 'TEAM') {
       return res
         .status(403)
-        .json({ message: 'Acesso negado. Apenas managers podem listar todos os eventos do time.' });
+        .json({
+          message:
+            'Acesso negado. Apenas managers e equipes podem listar todos os eventos do time.',
+        });
     }
 
     const events = await prisma.event.findMany({
@@ -26,6 +29,9 @@ router.get('/list-all-team-events', authenticateToken, async (req, res) => {
       },
       orderBy: {
         date: 'desc',
+      },
+      include: {
+        category: true, // Adiciona esta linha para incluir os dados da categoria
       },
     });
 

@@ -55,7 +55,7 @@ const Manager = {
    */
   delete: async (managerId) => {
     try {
-      const response = await api.delete(`/manager/delete/${managerId}`);
+      const response = await api.delete(`/manager/${managerId}`);
       return response.data;
     } catch (error) {
       throw error;

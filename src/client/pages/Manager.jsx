@@ -19,6 +19,7 @@ import CustomInput from '../components/common/CustomInput';
 import ManagerCard from '../components/card/ManagerCard';
 import { useNavigate } from 'react-router-dom';
 import ManagerService from '../services/Manager';
+import UserService from '../services/User';
 import { toast } from 'react-toastify';
 
 const Manager = () => {
@@ -38,7 +39,6 @@ const Manager = () => {
     setIsLoading(true);
     setError(null);
     try {
-      // 👈 Chama o serviço para buscar os managers do time
       const fetchedManagers = await ManagerService.getAllTeamManagers();
       setManagers(fetchedManagers);
     } catch (err) {
@@ -63,16 +63,24 @@ const Manager = () => {
   };
 
   const handleDeleteManagerClick = async (managerId) => {
-    const isConfirmed = window.confirm('Tem certeza de que deseja excluir este manager?');
+    const isConfirmed = window.confirm(
+      'Tem certeza de que deseja excluir este manager? Esta ação é irreversível.'
+    );
+
     if (isConfirmed) {
       try {
+        // Chamada direta para a rota de exclusão do manager.
+        // Toda a lógica (obter user, deletar user, etc.) fica no back-end.
         await ManagerService.delete(managerId);
-        // Recarrega a lista após a exclusão para refletir a mudança
-        fetchManagers();
+
         toast.success('Manager excluído com sucesso.');
+
+        // Recarregar a lista para atualizar a visualização
+        fetchManagers();
       } catch (err) {
         console.error('Erro ao excluir manager:', err);
-        toast.error('Erro ao excluir manager.');
+        const errorMessage = err.response?.data?.message || 'Erro ao excluir manager.';
+        toast.error(errorMessage);
       }
     }
   };

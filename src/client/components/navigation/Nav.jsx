@@ -82,17 +82,18 @@ const Nav = ({ open, onClose }) => {
           onClick={isPermanent ? null : onClose}
         />
         <NavItem
-          to="/payment"
-          primary="Central de Despesas"
-          icon={PaymentIcon}
-          onClick={isPermanent ? null : onClose}
-        />
-        <NavItem
           to="/event"
           primary="Central de Eventos"
           icon={EmojiEventsIcon}
           onClick={isPermanent ? null : onClose}
         />
+        <NavItem
+          to="/payment"
+          primary="Central de Despesas"
+          icon={PaymentIcon}
+          onClick={isPermanent ? null : onClose}
+        />
+
         {/* Outros itens podem ser adicionados aqui da mesma forma */}
       </List>
 

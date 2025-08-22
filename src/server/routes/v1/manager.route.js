@@ -133,7 +133,7 @@ router.patch('/update-manager/:id', authenticateToken, async (req, res) => {
  * DELETE /manager/:id
  * Exclui um manager e seu usuário associado.
  */
-router.delete('/manager/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { teamId, role } = req.user;
@@ -208,6 +208,40 @@ router.get('/list-all', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Erro ao listar os managers.' });
+  }
+});
+
+/**
+ * GET /managers/:id
+ * Busca um manager por ID e inclui os dados do usuário associado.
+ */
+router.get('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { teamId } = req.user;
+
+    const manager = await prisma.manager.findFirst({
+      where: {
+        id: Number(id),
+        user: {
+          teamId: teamId,
+        },
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!manager) {
+      return res
+        .status(404)
+        .json({ message: 'Manager não encontrado ou não pertence ao seu time.' });
+    }
+
+    res.status(200).json(manager);
+  } catch (err) {
+    console.error('Erro ao buscar manager por ID:', err);
+    res.status(500).json({ message: 'Erro ao buscar dados do manager.' });
   }
 });
 

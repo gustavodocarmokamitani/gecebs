@@ -17,15 +17,14 @@ import { useTheme } from '@mui/material/styles';
 import { useResponsive } from '../../hooks/useResponsive';
 import CustomButton from '../common/CustomButton';
 
-const AthleteCard = ({ event }) => {
+const AthleteCard = ({ athlete, onEdit, onDelete }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const theme = useTheme();
   const navigate = useNavigate();
 
   const deviceType = useResponsive();
-  const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
+  const isMobile = deviceType === 'mobile' || deviceType === 'tablet'; // Função para alternar o estado de expansão
 
-  // Função para alternar o estado de expansão
   const handleExpandClick = () => {
     setIsExpanded(!isExpanded);
   };
@@ -46,7 +45,10 @@ const AthleteCard = ({ event }) => {
   };
 
   const handleEditClick = () => {
-    navigate(`/athlete/edit/${event.id}`);
+    // ⚠️ CORRIGIDO: Agora usa a prop 'onEdit' do componente pai
+    if (onEdit) {
+      onEdit();
+    }
   };
 
   return (
@@ -60,7 +62,6 @@ const AthleteCard = ({ event }) => {
         border: `1px solid ${theme.palette.text.secondary}`,
       }}
     >
-      {/* Título do Card e Contagem de Confirmados */}
       <Box
         onClick={handleExpandClick}
         sx={{
@@ -83,13 +84,13 @@ const AthleteCard = ({ event }) => {
           }}
         >
           <Typography variant="p" component="div">
-            {event.firstName} {event.lastName}
+            {athlete.firstName} {athlete.lastName}
           </Typography>
           <Typography variant="p" color={theme.palette.text.secondary} component="div">
-            {event.phone}
+            {athlete.phone}
           </Typography>
           <Typography variant="p" color={theme.palette.text.secondary} component="div">
-            {event.federationId}
+            {athlete.federationId}
           </Typography>
           <Typography
             variant="p"
@@ -97,7 +98,7 @@ const AthleteCard = ({ event }) => {
             component="div"
             fontWeight={300}
           >
-            {new Intl.DateTimeFormat('pt-BR').format(new Date(event.birthDate))}
+            {new Intl.DateTimeFormat('pt-BR').format(new Date(athlete.birthDate))}
           </Typography>
           <Typography
             variant="p"
@@ -107,13 +108,11 @@ const AthleteCard = ({ event }) => {
           >
             Número do uniforme:
             <span style={{ color: theme.palette.secondary.main, fontWeight: '600' }}>
-              {' '}
-              {event.shirtNumber}
+              {athlete.shirtNumber}
             </span>
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {/* Botão com ícone de seta que rotaciona */}
           <IconButton
             onClick={handleExpandClick}
             aria-expanded={isExpanded}
@@ -130,7 +129,6 @@ const AthleteCard = ({ event }) => {
         </Box>
       </Box>
 
-      {/* Conteúdo Colapsável */}
       <Collapse in={isExpanded} timeout="auto" unmountOnExit>
         <Box
           sx={{
@@ -158,29 +156,27 @@ const AthleteCard = ({ event }) => {
               Categorias
             </Typography>
             <Divider sx={{ my: 1, borderColor: theme.palette.divider }} />
-            {event.categories.length > 0 && (
-              <>
-                <List dense>
-                  {event.categories.map((category, index) => (
-                    <ListItem
-                      key={category.categoryId}
-                      sx={{
-                        width: '250px',
-                        textAlign: 'center',
-                        backgroundColor: getBackgroundColor(index),
-                        borderRadius: '8px',
-                        marginBottom: '8px',
-                        color: theme.palette.text.primary,
-                        m: 0.5,
-                      }}
-                    >
-                      <ListItemText
-                        primary={categoryLabels[category.categoryId] || 'Categoria desconhecida'}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              </>
+            {athlete.categories && athlete.categories.length > 0 && (
+              <List dense>
+                {athlete.categories.map((category, index) => (
+                  <ListItem
+                    key={category.categoryId}
+                    sx={{
+                      width: '250px',
+                      textAlign: 'center',
+                      backgroundColor: getBackgroundColor(index),
+                      borderRadius: '8px',
+                      marginBottom: '8px',
+                      color: theme.palette.text.primary,
+                      m: 0.5,
+                    }}
+                  >
+                    <ListItemText
+                      primary={categoryLabels[category.categoryId] || 'Categoria desconhecida'}
+                    />
+                  </ListItem>
+                ))}
+              </List>
             )}
           </CardContent>
 
@@ -188,7 +184,7 @@ const AthleteCard = ({ event }) => {
             <CustomButton variant="contained" color="warning" onClick={handleEditClick}>
               Editar
             </CustomButton>
-            <CustomButton variant="contained" color="error">
+            <CustomButton variant="contained" color="error" onClick={onDelete}>
               Apagar
             </CustomButton>
           </Box>

@@ -17,7 +17,6 @@ import { useResponsive } from '../hooks/useResponsive';
 import CustomButton from '../components/common/CustomButton';
 import CustomInput from '../components/common/CustomInput';
 import { useNavigate } from 'react-router-dom';
-// 👈 Importe o serviço de categorias e o de atletas
 import CategoryService from '../services/Category';
 import AthleteService from '../services/Athlete';
 import { toast } from 'react-toastify';
@@ -204,7 +203,6 @@ function Athlete() {
       ) : (
         Object.keys(groupedAthletes).map((categoryId, index) => {
           const group = groupedAthletes[categoryId];
-          if (group.athletes.length === 0) return null;
 
           return (
             <Accordion
@@ -248,7 +246,6 @@ function Athlete() {
                   }}
                 >
                   {group.athletes.map((athlete) => (
-                    // ⚠️ Certifique-se de passar as props `onEdit` e `onDelete` para o AthleteCard
                     <AthleteCard
                       key={athlete.id}
                       athlete={athlete}

@@ -60,8 +60,17 @@ router.get('/list-athletes', authenticateToken, async (req, res) => {
  */
 router.post('/create-athlete', authenticateToken, async (req, res) => {
   try {
-    const { firstName, lastName, phone, birthDate, federationId, confederationId, houseNumber } =
-      req.body;
+    const {
+      firstName,
+      lastName,
+      phone,
+      birthDate,
+      federationId,
+      confederationId,
+      houseNumber,
+      categories,
+    } = req.body;
+
     const { teamId, role } = req.user;
 
     if (role !== 'MANAGER' && role !== 'TEAM') {
@@ -82,6 +91,7 @@ router.post('/create-athlete', authenticateToken, async (req, res) => {
     if (!team) {
       return res.status(404).json({ message: 'Time não encontrado.' });
     }
+
     const username = phone;
 
     const existingUser = await prisma.user.findUnique({
@@ -110,11 +120,24 @@ router.post('/create-athlete', authenticateToken, async (req, res) => {
             federationId,
             confederationId,
             houseNumber,
+            categories: {
+              createMany: {
+                data: categories.map((categoryId) => ({ categoryId })),
+              },
+            },
           },
         },
       },
       include: {
-        athlete: true,
+        athlete: {
+          include: {
+            categories: {
+              include: {
+                category: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -205,10 +228,10 @@ router.patch('/update-athlete/:id', authenticateToken, async (req, res) => {
 });
 
 /**
- * DELETE /athlete/:id
- * Exclui um atleta e seu usuário associado.
+ * DELETE /:id
+ * Exclui um atleta e seu usuário associado, incluindo todas as dependências.
  */
-router.delete('/athlete/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { teamId, role } = req.user;
@@ -227,10 +250,26 @@ router.delete('/athlete/:id', authenticateToken, async (req, res) => {
     }
 
     await prisma.$transaction(async (prisma) => {
+      // 1. Excluir associações do usuário (User)
+      await prisma.paymentUser.deleteMany({
+        where: { userId: athlete.user.id },
+      });
+
+      await prisma.confirmationUser.deleteMany({
+        where: { userId: athlete.user.id },
+      });
+
+      // 2. Excluir associações do atleta (Athlete)
+      await prisma.categoryAthlete.deleteMany({
+        where: { athleteId: Number(id) },
+      });
+
+      // 3. Excluir o registro do atleta
       await prisma.athlete.delete({
         where: { id: Number(id) },
       });
 
+      // 4. Excluir o registro do usuário
       await prisma.user.delete({
         where: { id: athlete.user.id },
       });

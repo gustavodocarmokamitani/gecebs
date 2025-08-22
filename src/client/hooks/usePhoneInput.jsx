@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react'; // 👈 Importe useCallback
 
 const usePhoneInput = (initialValue = '') => {
   const [phoneNumber, setPhoneNumber] = useState(initialValue);
@@ -7,7 +7,8 @@ const usePhoneInput = (initialValue = '') => {
   // Regex para validar o formato de telefone (00) 00000-0000
   const phoneRegex = /^\(\d{2}\) \d{5}-\d{4}$/;
 
-  const handlePhoneChange = (e) => {
+  const handlePhoneChange = useCallback((e) => {
+    // 👈 Use useCallback aqui
     let input = e.target.value;
 
     // Remove todos os caracteres que não sejam dígitos
@@ -26,7 +27,7 @@ const usePhoneInput = (initialValue = '') => {
     }
 
     setPhoneNumber(input);
-  };
+  }, []); // 👈 Array de dependências vazio, pois a lógica não depende de props ou estados.
 
   useEffect(() => {
     // A validação continua aqui, com debounce

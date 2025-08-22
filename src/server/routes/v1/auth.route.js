@@ -20,17 +20,20 @@ router.post('/register-team', async (req, res) => {
 
     const username = email.split('@')[0];
 
-    // 2. Hash da senha
+    // 2. Limpar o número de telefone
+    const cleanedPhone = phone.replace(/\D/g, ''); // Remove tudo que não for dígito
+
+    // 3. Hash da senha
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 3. Usa uma transação para garantir que ambos os registros sejam criados
+    // 4. Usa uma transação para garantir que ambos os registros sejam criados
     const [newTeam, newUser] = await prisma.$transaction([
       // Primeira operação: Cria o Time
       prisma.team.create({
         data: {
           name,
           email,
-          phone,
+          phone: cleanedPhone, // Usa o número de telefone limpo
           password: hashedPassword,
         },
       }),
@@ -48,7 +51,7 @@ router.post('/register-team', async (req, res) => {
       }),
     ]);
 
-    // 4. Responde ao cliente com sucesso
+    // 5. Responde ao cliente com sucesso
     res.status(201).json({
       message: 'Time e usuário registrados com sucesso!',
       teamId: newTeam.id,
@@ -57,8 +60,8 @@ router.post('/register-team', async (req, res) => {
   } catch (error) {
     // Trata erros específicos do Prisma
     if (error.code === 'P2002') {
-      // Erro de campo único (email já existe)
-      return res.status(409).json({ message: 'Este e-mail já está em uso.' });
+      // Erro de campo único (email ou phone já existe)
+      return res.status(409).json({ message: 'Este e-mail ou telefone já está em uso.' });
     }
     // Erros gerais
     console.error('Erro ao registrar o time:', error);
@@ -166,23 +169,37 @@ router.get('/email-exists', async (req, res) => {
 /**
  * Rota para verificar se um telefone já existe na base de dados
  */
-router.get('/phone-exists', async (req, res) => {
-  try {
-    const { phone } = req.query; // Pega o telefone dos parâmetros da URL
+router.get(
+  '/phone-exists',
+  (req, res, next) => {
+    // Desabilita o cache para esta requisição GET
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    next(); // Continua para a próxima função na rota
+  },
+  async (req, res) => {
+    try {
+      const { phone } = req.query;
 
-    const team = await prisma.team.findUnique({
-      where: { phone },
-    });
+      if (!phone) {
+        return res.status(400).json({ message: 'O número de telefone é obrigatório.' });
+      }
 
-    if (team) {
-      return res.status(200).json({ exists: true, message: 'Este telefone já está cadastrado.' });
+      const team = await prisma.team.findUnique({ where: { phone } });
+      const manager = await prisma.manager.findUnique({ where: { phone } });
+      const athlete = await prisma.athlete.findUnique({ where: { phone } });
+
+      if (team || manager || athlete) {
+        return res.status(200).json({ exists: true, message: 'Este telefone já está cadastrado.' });
+      }
+
+      return res.status(200).json({ exists: false, message: 'Telefone disponível.' });
+    } catch (err) {
+      console.error('Erro ao verificar o telefone:', err);
+      res.status(500).json({ message: 'Erro ao verificar o telefone.' });
     }
-
-    return res.status(200).json({ exists: false, message: 'Telefone disponível.' });
-  } catch (err) {
-    console.error('Erro ao verificar o telefone:', err);
-    res.status(500).json({ message: 'Erro ao verificar o telefone.' });
   }
-});
+);
 
 export default router;

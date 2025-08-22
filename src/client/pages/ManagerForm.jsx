@@ -1,3 +1,5 @@
+// src/pages/ManagerForm.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -8,7 +10,6 @@ import {
   FormLabel,
   FormGroup,
   FormControlLabel,
-  Checkbox,
   CircularProgress,
 } from '@mui/material';
 import CustomInput from '../components/common/CustomInput';
@@ -20,6 +21,8 @@ import { useResponsive } from '../hooks/useResponsive';
 import ManagerService from '../services/Manager';
 import CategoryService from '../services/Category';
 import { toast } from 'react-toastify';
+import usePhoneInput from '../hooks/usePhoneInput'; // 👈 Importando o hook
+import Auth from '../services/Auth'; // 👈 Importando o serviço de autenticação para verificar o telefone
 
 const ManagerForm = () => {
   const { managerId } = useParams();
@@ -29,16 +32,22 @@ const ManagerForm = () => {
   const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
 
   const isEditing = !!managerId;
+
+  // 1. Usar o hook para gerenciar o input de telefone
+  const { phoneNumber, phoneError, handlePhoneChange } = usePhoneInput();
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
-    phone: '',
     categories: [],
   });
-  const [categories, setCategories] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
 
+  const [categories, setCategories] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [phoneServerError, setPhoneServerError] = useState('');
+
+  // Efeito para carregar os dados
   useEffect(() => {
     const fetchFormData = async () => {
       setIsLoading(true);
@@ -53,9 +62,10 @@ const ManagerForm = () => {
             setFormData({
               firstName: managerToEdit.firstName,
               lastName: managerToEdit.lastName,
-              phone: managerToEdit.phone,
               categories: managerToEdit.categories.map((c) => c.category.id),
             });
+            // Definir o valor do telefone no hook
+            handlePhoneChange({ target: { value: managerToEdit.phone } });
           } else {
             setError('Manager não encontrado.');
             toast.error('Manager não encontrado.');
@@ -70,9 +80,37 @@ const ManagerForm = () => {
         setIsLoading(false);
       }
     };
-
     fetchFormData();
   }, [managerId, isEditing, navigate]);
+
+  // Efeito para verificar se o telefone já existe
+  useEffect(() => {
+    const timeoutId = setTimeout(async () => {
+      // Evita a verificação ao carregar no modo de edição
+      if (isEditing) {
+        return;
+      }
+
+      const phoneToVerify = phoneNumber.replace(/\D/g, '');
+
+      if (phoneToVerify.length >= 10) {
+        try {
+          const result = await Auth.checkPhoneExists(phoneToVerify);
+          if (result.exists) {
+            setPhoneServerError('Este telefone já está em uso.');
+          } else {
+            setPhoneServerError('');
+          }
+        } catch (err) {
+          setPhoneServerError('Não foi possível verificar o telefone.');
+        }
+      } else {
+        setPhoneServerError('');
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [phoneNumber, isEditing]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -93,22 +131,32 @@ const ManagerForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Explicitly check for all required fields, including the category array.
     if (!formData.firstName || !formData.lastName || formData.categories.length === 0) {
-      setError('Por favor, preencha todos os campos obrigatórios e selecione uma categoria.');
       toast.error('Por favor, preencha todos os campos obrigatórios e selecione uma categoria.');
-      return; // Stop the function here
+      return;
+    }
+
+    if (phoneError || phoneServerError) {
+      toast.error('Corrija os erros do telefone antes de continuar.');
+      return;
     }
 
     setIsLoading(true);
     setError(null);
 
+    const cleanedPhone = phoneNumber.replace(/\D/g, '');
+
     try {
+      const dataToSubmit = {
+        ...formData,
+        phone: cleanedPhone,
+      };
+
       if (isEditing) {
-        await ManagerService.update(managerId, formData);
+        await ManagerService.update(managerId, dataToSubmit);
         toast.success('Manager atualizado com sucesso!');
       } else {
-        await ManagerService.create(formData);
+        await ManagerService.create(dataToSubmit);
         toast.success('Manager criado com sucesso!');
       }
       navigate('/manager');
@@ -219,16 +267,19 @@ const ManagerForm = () => {
                 label="Telefone"
                 name="phone"
                 type="tel"
-                value={formData.phone}
-                onChange={handleChange}
+                value={phoneNumber}
+                onChange={handlePhoneChange}
                 required
+                disabled={isEditing}
+                error={!!phoneError || !!phoneServerError}
+                helperText={phoneError || phoneServerError}
               />
             </Box>
           </Box>
 
           <FormControl component="fieldset" variant="standard" sx={{ mt: 2 }}>
             <FormLabel component="legend" sx={{ color: theme.palette.text.secondary }}>
-              Categorias Gerenciadas
+              Categorias Gerenciadas*
             </FormLabel>
             <FormGroup row>
               {Array.isArray(categories) &&
@@ -251,7 +302,12 @@ const ManagerForm = () => {
           </FormControl>
 
           <Box sx={{ mt: 2 }}>
-            <CustomButton fullWidth type="submit" variant="contained" disabled={isLoading}>
+            <CustomButton
+              fullWidth
+              type="submit"
+              variant="contained"
+              disabled={isLoading || !!phoneError || !!phoneServerError}
+            >
               {isLoading ? <CircularProgress size={24} /> : 'Salvar'}
             </CustomButton>
           </Box>

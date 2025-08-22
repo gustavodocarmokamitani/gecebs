@@ -121,15 +121,6 @@ router.delete('/delete-user/:id', authenticateToken, async (req, res) => {
       return res.status(403).json({ message: 'Acesso negado. Você não pode excluir outro admin.' });
     }
 
-    // Se o usuário a ser excluído for um atleta, a rota delete-athlete deve ser usada para garantir
-    // que o registro do atleta também seja excluído.
-    if (userToDelete.role === 'ATHLETE') {
-      // Redireciona ou retorna um erro, sugerindo a rota correta
-      return res
-        .status(400)
-        .json({ message: 'Use a rota /athlete/delete-athlete para excluir um atleta.' });
-    }
-
     await prisma.user.delete({
       where: { id: Number(id) },
     });

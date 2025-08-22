@@ -1,18 +1,26 @@
-// src/pages/AthleteForm.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, IconButton, Divider } from '@mui/material';
+import {
+  Box,
+  Typography,
+  CircularProgress,
+  Divider,
+  FormControl, // 👈 Adicionado
+  FormLabel, // 👈 Adicionado
+  FormGroup, // 👈 Adicionado
+  FormControlLabel, // 👈 Adicionado
+} from '@mui/material';
 import CustomInput from '../components/common/CustomInput';
 import CustomButton from '../components/common/CustomButton';
+import CustomCheckbox from '../components/common/CustomCheckbox';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useTheme } from '@mui/material/styles';
 import { useResponsive } from '../hooks/useResponsive';
 import Athlete from '../services/Athlete';
+import Category from '../services/Category';
 import { toast } from 'react-toastify';
-
-const atletas = [
-  // ... seus dados de exemplo
-];
+import usePhoneInput from '../hooks/usePhoneInput';
+import Auth from '../services/Auth';
 
 const AthleteForm = () => {
   const { athleteId } = useParams();
@@ -22,62 +30,135 @@ const AthleteForm = () => {
   const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
 
   const isEditing = !!athleteId;
-  const athleteToEdit = isEditing ? atletas.find((a) => a.id === parseInt(athleteId)) : null;
+
+  const { phoneNumber, phoneError, handlePhoneChange } = usePhoneInput();
 
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
-    phone: '',
     federationId: '',
     confederationId: '',
     birthDate: '',
     shirtNumber: '',
+    categories: [],
   });
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [phoneServerError, setPhoneServerError] = useState('');
+  const [availableCategories, setAvailableCategories] = useState([]);
 
+  // Efeito para carregar categorias disponíveis e dados do atleta
   useEffect(() => {
-    if (isEditing && athleteToEdit) {
-      setFormData({
-        firstName: athleteToEdit.firstName,
-        lastName: athleteToEdit.lastName,
-        phone: athleteToEdit.phone,
-        federationId: athleteToEdit.federationId,
-        confederationId: athleteToEdit.confederationId,
-        birthDate: athleteToEdit.birthDate.split('T')[0],
-        shirtNumber: athleteToEdit.shirtNumber,
-      });
-    } else {
-      setFormData({
-        firstName: '',
-        lastName: '',
-        phone: '',
-        federationId: '',
-        confederationId: '',
-        birthDate: '',
-        shirtNumber: '',
-      });
-    }
-  }, [athleteId, isEditing, athleteToEdit]);
+    const fetchCategoriesAndAthlete = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const categoriesData = await Category.getAll();
+        setAvailableCategories(categoriesData);
+
+        if (isEditing) {
+          const athleteToEdit = await Athlete.getById(athleteId);
+          if (athleteToEdit) {
+            setFormData({
+              firstName: athleteToEdit.firstName,
+              lastName: athleteToEdit.lastName,
+              federationId: athleteToEdit.federationId,
+              confederationId: athleteToEdit.confederationId,
+              birthDate: athleteToEdit.birthDate.split('T')[0],
+              shirtNumber: athleteToEdit.shirtNumber,
+              categories: athleteToEdit.categories.map((cat) => cat.id),
+            });
+            handlePhoneChange({ target: { value: athleteToEdit.phone } });
+          } else {
+            setError('Atleta não encontrado.');
+            toast.error('Atleta não encontrado.');
+            navigate('/athlete');
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao buscar dados:', err);
+        setError('Erro ao carregar dados. Tente novamente.');
+        toast.error('Erro ao carregar dados.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchCategoriesAndAthlete();
+  }, [athleteId, isEditing, navigate, handlePhoneChange]);
+
+  // Efeito para verificar se o telefone já existe
+  useEffect(() => {
+    const timeoutId = setTimeout(async () => {
+      if (isEditing) {
+        return;
+      }
+      const phoneToVerify = phoneNumber.replace(/\D/g, '');
+      if (phoneToVerify.length >= 10) {
+        try {
+          const result = await Auth.checkPhoneExists(phoneToVerify);
+          if (result.exists) {
+            setPhoneServerError('Este telefone já está em uso.');
+          } else {
+            setPhoneServerError('');
+          }
+        } catch (err) {
+          setPhoneServerError('Não foi possível verificar o telefone.');
+        }
+      } else {
+        setPhoneServerError('');
+      }
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }, [phoneNumber, isEditing]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleCategoryChange = (categoryId) => {
+    setFormData((prev) => {
+      const isSelected = prev.categories.includes(categoryId);
+      const newCategories = isSelected
+        ? prev.categories.filter((id) => id !== categoryId)
+        : [...prev.categories, categoryId];
+      return { ...prev, categories: newCategories };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validação do telefone
+    if (phoneError || phoneServerError) {
+      toast.error('Corrija os erros do telefone antes de continuar.');
+      return;
+    }
+
+    // 🚀 Validação de categorias (o que você precisa adicionar)
+    if (formData.categories.length === 0) {
+      toast.error('Por favor, selecione pelo menos uma categoria.');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
+    const cleanedPhone = phoneNumber.replace(/\D/g, '');
+    const dataToSubmit = {
+      ...formData,
+      phone: cleanedPhone,
+      categories: formData.categories,
+    };
+
     try {
       if (isEditing) {
-        toast.info('Funcionalidade de edição ainda não implementada.');
+        await Athlete.update(athleteId, dataToSubmit);
+        toast.success('Atleta atualizado com sucesso!');
       } else {
-        // Lógica de CRIAÇÃO
-        const newAthlete = await Athlete.create(formData);
+        await Athlete.create(dataToSubmit);
         toast.success('Atleta criado com sucesso!');
-        console.log('Atleta criado:', newAthlete);
       }
       navigate('/athlete');
     } catch (err) {
@@ -91,9 +172,6 @@ const AthleteForm = () => {
   };
 
   const title = isEditing ? 'Editar Atleta' : 'Adicionar Atleta';
-  const subtitle = isEditing
-    ? athleteToEdit?.firstName + ' ' + athleteToEdit?.lastName
-    : 'Novo Atleta';
 
   return (
     <Box>
@@ -185,9 +263,12 @@ const AthleteForm = () => {
               label="Telefone"
               name="phone"
               type="tel"
-              value={formData.phone}
-              onChange={handleChange}
+              value={phoneNumber}
+              onChange={handlePhoneChange}
               required
+              disabled={isEditing}
+              error={!!phoneError || !!phoneServerError}
+              helperText={phoneError || phoneServerError}
             />
           </Box>
           <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
@@ -195,6 +276,7 @@ const AthleteForm = () => {
               label="Data de Nascimento"
               name="birthDate"
               type="date"
+              required
               value={formData.birthDate}
               onChange={handleChange}
               InputLabelProps={{ shrink: true }}
@@ -227,9 +309,44 @@ const AthleteForm = () => {
           </Box>
         </Box>
 
+        {/* 🚀 Seção de Checkbox para Categorias */}
+        <FormControl component="fieldset" variant="standard" sx={{ mt: 2 }}>
+          <FormLabel component="legend" sx={{ color: theme.palette.text.secondary }}>
+            Categorias
+          </FormLabel>
+          <FormGroup row>
+            {Array.isArray(availableCategories) && availableCategories.length > 0 ? (
+              availableCategories.map((category) => (
+                <FormControlLabel
+                  key={category.id}
+                  control={
+                    <CustomCheckbox
+                      checked={formData.categories.includes(category.id)}
+                      onChange={() => handleCategoryChange(category.id)}
+                    />
+                  }
+                  label={
+                    <Typography color={theme.palette.text.secondary}>{category.name}</Typography>
+                  }
+                />
+              ))
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                Nenhuma categoria disponível.
+              </Typography>
+            )}
+          </FormGroup>
+        </FormControl>
+        {/* Fim da Seção de Checkbox */}
+
         <Box sx={{ mt: 2 }}>
-          <CustomButton fullWidth type="submit" variant="contained" disabled={isLoading}>
-            {isLoading ? 'Salvando...' : 'Salvar'}
+          <CustomButton
+            fullWidth
+            type="submit"
+            variant="contained"
+            disabled={isLoading || !!phoneError || !!phoneServerError}
+          >
+            {isLoading ? <CircularProgress size={24} /> : 'Salvar'}
           </CustomButton>
         </Box>
       </Box>
