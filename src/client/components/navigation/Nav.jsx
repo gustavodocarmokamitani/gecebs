@@ -6,6 +6,7 @@ import PaymentIcon from '@mui/icons-material/Payment';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import SettingsIcon from '@mui/icons-material/Settings';
 import SportsBaseballIcon from '@mui/icons-material/SportsBaseball';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useResponsive } from '../../hooks/useResponsive';
 import NavItem from './NavItem';
@@ -59,6 +60,12 @@ const Nav = ({ open, onClose }) => {
           to="/analytics"
           primary="Analytics"
           icon={AnalyticsIcon}
+          onClick={isPermanent ? null : onClose}
+        />
+        <NavItem
+          to="/manager"
+          primary="Gestão de Manager"
+          icon={ManageAccountsIcon}
           onClick={isPermanent ? null : onClose}
         />
         <NavItem

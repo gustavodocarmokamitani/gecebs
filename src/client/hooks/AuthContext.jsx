@@ -29,7 +29,6 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(user));
       setIsAuthenticated(true);
       setUser(user);
-      toast.success('Login bem-sucedido!');
       return true;
     } catch (error) {
       console.error('Login error:', error);

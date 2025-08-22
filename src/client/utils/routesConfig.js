@@ -3,12 +3,17 @@ import PaymentIcon from '@mui/icons-material/Payment';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import SportsBaseballIcon from '@mui/icons-material/SportsBaseball';
 import SettingsIcon from '@mui/icons-material/Settings';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import LogoutIcon from '@mui/icons-material/Logout';
 
 const routesConfig = {
   '/analytics': {
     title: 'Analytics',
     icon: AnalyticsIcon,
+  },
+  '/manager': {
+    title: 'Gestão de Manager',
+    icon: ManageAccountsIcon,
   },
   '/athlete': {
     title: 'Gestão de Atletas',

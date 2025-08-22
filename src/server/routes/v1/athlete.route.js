@@ -17,33 +17,34 @@ router.post('/create-athlete', authenticateToken, async (req, res) => {
       req.body;
     const { teamId, role } = req.user;
 
-    // Verifica se a role é 'MANAGER' ou 'TEAM'
     if (role !== 'MANAGER' && role !== 'TEAM') {
       return res
         .status(403)
         .json({ message: 'Acesso negado. Apenas managers ou equipes podem criar atletas.' });
     }
 
-    // 1. Busca o nome do time pelo teamId
     const team = await prisma.team.findUnique({
       where: {
         id: teamId,
       },
       select: {
-        name: true, // Seleciona apenas o campo 'name' para otimizar
+        name: true,
       },
     });
 
-    // 2. Verifica se o time foi encontrado
     if (!team) {
       return res.status(404).json({ message: 'Time não encontrado.' });
     }
+    const username = phone;
 
-    // 3. Cria o nome de usuário com o nome do time (e remove espaços)
-    const teamName = team.name.replace(/\s/g, '').toLowerCase();
-    const username = `${firstName.replace(/\s/g, '').toLowerCase()}${lastName.replace(/\s/g, '').toLowerCase()}${teamName}`;
+    const existingUser = await prisma.user.findUnique({
+      where: { username: username },
+    });
 
-    // ... Resto da sua lógica (gerar senha, criar usuário no Prisma, etc.)
+    if (existingUser) {
+      return res.status(409).json({ message: 'Um usuário com este telefone já existe.' });
+    }
+
     const genericPassword = `${firstName.replace(/\s/g, '').toLowerCase()}123`;
     const hashedPassword = await bcrypt.hash(genericPassword, 10);
 
@@ -79,6 +80,7 @@ router.post('/create-athlete', authenticateToken, async (req, res) => {
     res.status(500).json({ message: 'Erro ao criar o atleta.' });
   }
 });
+
 /**
  * PATCH /update-athlete/:id
  * Atualiza os dados de um atleta e suas categorias.

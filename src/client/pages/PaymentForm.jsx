@@ -14,10 +14,11 @@ import {
 } from '@mui/material';
 import CustomInput from '../components/common/CustomInput';
 import CustomButton from '../components/common/CustomButton';
-import CustomSelect from '../components/common/CustomSelect'; // Importe o novo componente
+import CustomSelect from '../components/common/CustomSelect';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useTheme } from '@mui/material/styles';
 import { useResponsive } from '../hooks/useResponsive';
+import PaymentService from '../services/Payment';
 
 // Dados de exemplo para simular a tabela de categorias e eventos
 const categories = [
@@ -66,27 +67,27 @@ const PaymentForm = () => {
 
   const [formData, setFormData] = useState({
     name: '',
-    value: '',
     dueDate: '',
     pixKey: '',
     categoryId: '',
-    eventId: '', // Novo campo para o ID do evento
+    eventId: '',
   });
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (isEditing && paymentToEdit) {
       setFormData({
         name: paymentToEdit.name,
-        value: paymentToEdit.value,
         dueDate: paymentToEdit.dueDate.split('T')[0],
         pixKey: paymentToEdit.pixKey,
         categoryId: paymentToEdit.categoryId,
-        eventId: paymentToEdit.eventId || '', // Define o ID do evento se existir
+        eventId: paymentToEdit.eventId || '',
       });
     } else {
       setFormData({
         name: '',
-        value: '',
         dueDate: '',
         pixKey: '',
         categoryId: '',
@@ -100,19 +101,40 @@ const PaymentForm = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isEditing) {
-      console.log('Dados para edição:', formData);
-    } else {
-      console.log('Dados para criação:', formData);
+    setIsLoading(true);
+    setError(null);
+
+    // O valor não é mais enviado do frontend, ele será calculado no backend
+    const dataToSubmit = {
+      name: formData.name,
+      dueDate: formData.dueDate,
+      pixKey: formData.pixKey,
+      categoryId: formData.categoryId,
+      eventId: formData.eventId ? parseInt(formData.eventId) : null,
+    };
+
+    try {
+      if (isEditing) {
+        console.log('Dados para edição:', dataToSubmit);
+      } else {
+        const newPayment = await PaymentService.create(dataToSubmit);
+        console.log('Pagamento criado com sucesso!');
+        // Navega para a página de itens, passando o ID do novo pagamento
+        navigate(`/payment/items/${newPayment.id}`);
+      }
+    } catch (err) {
+      console.error('Erro:', err);
+      setError('Erro ao salvar o pagamento. Tente novamente.');
+    } finally {
+      setIsLoading(false);
     }
-    navigate('/payment');
   };
 
-  const title = isEditing ? 'Editar Pagamento' : 'Adicionar Pagamento';
+  const title = isEditing ? 'Editar Despesas' : 'Adicionar Despesas';
+  const buttonText = isLoading ? 'Salvando...' : 'Avançar';
 
-  // Opções para o select de eventos, incluindo uma opção 'Nenhum'
   const eventOptions = [
     { value: '', label: 'Nenhum' },
     ...eventos.map((e) => ({ value: e.id, label: e.name })),
@@ -152,7 +174,7 @@ const PaymentForm = () => {
               },
             }}
           >
-            Gestão de Pagamentos
+            Visão Geral
           </Box>
           <span>
             <ChevronRightIcon sx={{ mt: 1.5 }} />
@@ -188,17 +210,8 @@ const PaymentForm = () => {
               required
             />
           </Box>
-          {/* Valor */}
-          <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
-            <CustomInput
-              label="Valor (R$)"
-              name="value"
-              type="number"
-              value={formData.value}
-              onChange={handleChange}
-              required
-            />
-          </Box>
+          {/* O campo de valor foi removido */}
+
           {/* Data de Vencimento */}
           <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
             <CustomInput
@@ -252,8 +265,13 @@ const PaymentForm = () => {
           </Box>
         </Box>
         <Box sx={{ mt: 2 }}>
-          <CustomButton fullWidth type="submit" variant="contained">
-            Salvar
+          {error && (
+            <Typography color="error" sx={{ mb: 2, textAlign: 'center' }}>
+              {error}
+            </Typography>
+          )}
+          <CustomButton fullWidth type="submit" variant="contained" disabled={isLoading}>
+            {buttonText}
           </CustomButton>
         </Box>
       </Box>

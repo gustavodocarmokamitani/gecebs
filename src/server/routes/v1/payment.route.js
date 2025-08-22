@@ -6,6 +6,37 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 /**
+ * GET /payment/:id
+ * Busca um pagamento específico por ID, incluindo seus itens.
+ */
+router.get('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { teamId, role } = req.user;
+
+    const paymentId = parseInt(id);
+
+    const payment = await prisma.payment.findUnique({
+      where: {
+        id: paymentId,
+      },
+      include: {
+        items: true, // Inclui todos os PaymentItems associados
+      },
+    });
+
+    if (!payment || payment.teamId !== teamId) {
+      return res.status(404).json({ message: 'Pagamento não encontrado ou acesso negado.' });
+    }
+
+    res.status(200).json(payment);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao buscar o pagamento.' });
+  }
+});
+
+/**
  * GET /payment/list-all-team-payments
  * Lista todos os pagamentos criados para um time.
  */
@@ -14,7 +45,7 @@ router.get('/list-all-team-payments', authenticateToken, async (req, res) => {
     const { teamId, role } = req.user;
 
     // Apenas managers podem ver todos os pagamentos do time
-    if (role !== 'MANAGER') {
+    if (role !== 'MANAGER' && role !== 'TEAM') {
       return res.status(403).json({
         message: 'Acesso negado. Apenas managers podem listar todos os pagamentos do time.',
       });
@@ -63,6 +94,7 @@ router.get('/list-all-payments-athletics', authenticateToken, async (req, res) =
             value: true,
             dueDate: true,
             pixKey: true,
+            items: true, // Incluindo os itens para o atleta
           },
         },
       },
@@ -80,53 +112,59 @@ router.get('/list-all-payments-athletics', authenticateToken, async (req, res) =
   }
 });
 
-// Rota para criar um pagamento
+/**
+ * POST /payment/create-payment
+ * Cria um novo pagamento com valor inicial 0.
+ */
 router.post('/create-payment', authenticateToken, async (req, res) => {
   try {
-    const { name, value, dueDate, pixKey, categoryId } = req.body;
+    const { name, dueDate, pixKey, categoryId, eventId } = req.body;
     const { teamId, role } = req.user;
 
-    // Apenas managers podem criar pagamentos
-    if (role !== 'MANAGER') {
+    if (role !== 'MANAGER' && role !== 'TEAM') {
       return res
         .status(403)
         .json({ message: 'Acesso negado. Apenas managers podem criar pagamentos.' });
     }
 
-    // Passo 1: Criar o pagamento na tabela Payment
+    // Passo 1: Criar o pagamento na tabela Payment com valor inicial 0
     const newPayment = await prisma.payment.create({
       data: {
         name,
-        value: parseFloat(value),
+        value: 0.0, // O valor é inicializado como 0.0
         dueDate: new Date(dueDate),
         pixKey,
         teamId,
         categoryId: parseInt(categoryId),
+        eventId: eventId ? parseInt(eventId) : null,
       },
     });
 
-    // Passo 2: Encontrar todos os atletas do time
-    const athletes = await prisma.user.findMany({
+    // Passo 2: Associar o pagamento aos atletas da categoria
+    const categoryAthletes = await prisma.categoryAthlete.findMany({
       where: {
-        teamId: teamId,
-        role: 'ATHLETE',
+        categoryId: parseInt(categoryId),
+      },
+      include: {
+        athlete: {
+          include: {
+            user: true,
+          },
+        },
       },
     });
 
-    // Passo 3: Criar uma associação na tabela PaymentUser para cada atleta
-    const paymentUsersData = athletes.map((athlete) => ({
+    const paymentUsersData = categoryAthletes.map((categoryAthlete) => ({
       paymentId: newPayment.id,
-      userId: athlete.id,
+      userId: categoryAthlete.athlete.user.id,
     }));
 
     await prisma.paymentUser.createMany({
       data: paymentUsersData,
     });
 
-    res.status(201).json({
-      message: 'Pagamento criado e associado a todos os atletas do time com sucesso.',
-      payment: newPayment,
-    });
+    // Retorna o novo pagamento para que o frontend possa usar o ID
+    res.status(201).json(newPayment);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Erro ao criar o pagamento.' });
@@ -137,23 +175,21 @@ router.post('/create-payment', authenticateToken, async (req, res) => {
  * PATCH /payment/update/:id
  * Atualiza os dados de um pagamento existente.
  */
-router.patch('/payment/update/:id', authenticateToken, async (req, res) => {
+router.patch('/update/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, value, dueDate, pixKey, categoryId } = req.body;
+    const { name, dueDate, pixKey, categoryId, eventId } = req.body;
     const { teamId, role } = req.user;
 
     // Apenas managers podem atualizar pagamentos
-    if (role !== 'MANAGER') {
+    if (role !== 'MANAGER' && role !== 'TEAM') {
       return res
         .status(403)
         .json({ message: 'Acesso negado. Apenas managers podem atualizar pagamentos.' });
     }
 
-    // Converte o ID do parâmetro para um número
     const paymentId = parseInt(id);
 
-    // Encontra o pagamento e garante que ele pertence ao time do manager
     const existingPayment = await prisma.payment.findUnique({
       where: {
         id: paymentId,
@@ -166,17 +202,16 @@ router.patch('/payment/update/:id', authenticateToken, async (req, res) => {
         .json({ message: 'Pagamento não encontrado ou não pertence ao seu time.' });
     }
 
-    // Atualiza apenas os campos que foram enviados na requisição
     const updatedPayment = await prisma.payment.update({
       where: {
         id: paymentId,
       },
       data: {
         name,
-        value: value !== undefined ? parseFloat(value) : undefined,
         dueDate: dueDate !== undefined ? new Date(dueDate) : undefined,
         pixKey,
         categoryId: categoryId !== undefined ? parseInt(categoryId) : undefined,
+        eventId: eventId !== undefined ? parseInt(eventId) : undefined,
       },
     });
 
@@ -192,15 +227,14 @@ router.patch('/payment/update/:id', authenticateToken, async (req, res) => {
 
 /**
  * DELETE /payment/delete/:id
- * Deleta um pagamento e suas associações com os atletas.
+ * Deleta um pagamento e suas associações com os atletas e itens.
  */
 router.delete('/delete/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { teamId, role } = req.user;
 
-    // Apenas managers podem deletar pagamentos
-    if (role !== 'MANAGER') {
+    if (role !== 'MANAGER' && role !== 'TEAM') {
       return res
         .status(403)
         .json({ message: 'Acesso negado. Apenas managers podem deletar pagamentos.' });
@@ -208,7 +242,6 @@ router.delete('/delete/:id', authenticateToken, async (req, res) => {
 
     const paymentId = parseInt(id);
 
-    // 1. Verifica se o pagamento existe e pertence ao time do manager
     const existingPayment = await prisma.payment.findUnique({
       where: {
         id: paymentId,
@@ -221,14 +254,19 @@ router.delete('/delete/:id', authenticateToken, async (req, res) => {
         .json({ message: 'Pagamento não encontrado ou não pertence ao seu time.' });
     }
 
-    // 2. Deleta as associações na tabela PaymentUser para evitar erros de restrição
     await prisma.paymentUser.deleteMany({
       where: {
         paymentId: paymentId,
       },
     });
 
-    // 3. Deleta o pagamento da tabela Payment
+    // Novo: Deleta os itens de pagamento associados
+    await prisma.paymentItem.deleteMany({
+      where: {
+        paymentId: paymentId,
+      },
+    });
+
     const deletedPayment = await prisma.payment.delete({
       where: {
         id: paymentId,
@@ -249,13 +287,11 @@ router.delete('/delete/:id', authenticateToken, async (req, res) => {
  * POST /payment/confirm
  * Confirma o pagamento de um item para o usuário logado.
  */
-router.post('/payment/confirm', authenticateToken, async (req, res) => {
+router.post('/confirm', authenticateToken, async (req, res) => {
   try {
     const { paymentId } = req.body;
     const { userId } = req.user;
 
-    // Procura a entrada na tabela de junção PaymentUser
-    // Garante que o pagamento existe e pertence ao usuário
     const existingPaymentUser = await prisma.paymentUser.findUnique({
       where: {
         paymentId_userId: {
@@ -271,12 +307,10 @@ router.post('/payment/confirm', authenticateToken, async (req, res) => {
         .json({ message: 'Pagamento não encontrado ou não pertence a este usuário.' });
     }
 
-    // Se já foi pago, retorna uma mensagem
     if (existingPaymentUser.paidAt) {
       return res.status(400).json({ message: 'Este pagamento já foi confirmado.' });
     }
 
-    // Atualiza a data de pagamento para a data atual
     const confirmedPayment = await prisma.paymentUser.update({
       where: {
         paymentId_userId: {
@@ -296,6 +330,107 @@ router.post('/payment/confirm', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Erro ao confirmar o pagamento.' });
+  }
+});
+
+/**
+ * POST /payment/:id/items
+ * Adiciona um item a um pagamento existente e atualiza o valor total.
+ */
+router.post('/:id/items', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, value, quantityEnabled } = req.body;
+    const { role } = req.user;
+    const paymentId = parseInt(id);
+    const itemValue = parseFloat(value);
+
+    // Verificação de permissão
+    if (role !== 'MANAGER' && role !== 'TEAM') {
+      return res.status(403).json({ message: 'Acesso negado.' });
+    }
+
+    // A transação garante que as duas operações ocorram juntas
+    const [newItem, updatedPayment] = await prisma.$transaction([
+      // 1. Cria o novo item
+      prisma.paymentItem.create({
+        data: {
+          name,
+          value: itemValue,
+          quantityEnabled,
+          paymentId: paymentId,
+        },
+      }),
+      // 2. Incrementa o valor do pagamento
+      prisma.payment.update({
+        where: { id: paymentId },
+        data: {
+          value: {
+            increment: itemValue,
+          },
+        },
+      }),
+    ]);
+
+    res.status(201).json({
+      message: 'Item adicionado e pagamento atualizado com sucesso.',
+      item: newItem,
+      payment: updatedPayment,
+    });
+  } catch (err) {
+    console.error('Erro na rota POST /payment/:id/items:', err);
+    res.status(500).json({ message: 'Erro ao adicionar o item.' });
+  }
+});
+
+/**
+ * DELETE /payment/item/:itemId
+ * Deleta um item de pagamento e atualiza o valor total.
+ */
+router.delete('/item/:itemId', authenticateToken, async (req, res) => {
+  try {
+    const { itemId } = req.params;
+    const { role } = req.user;
+    const paymentItemId = parseInt(itemId);
+
+    if (role !== 'MANAGER' && role !== 'TEAM') {
+      return res.status(403).json({ message: 'Acesso negado.' });
+    }
+
+    // Primeiro, encontra o item para obter o valor e o paymentId
+    const itemToDelete = await prisma.paymentItem.findUnique({
+      where: { id: paymentItemId },
+    });
+
+    if (!itemToDelete) {
+      return res.status(404).json({ message: 'Item não encontrado.' });
+    }
+
+    // A transação garante que as duas operações ocorram juntas
+    const [deletedItem, updatedPayment] = await prisma.$transaction([
+      // 1. Decrementa o valor do pagamento
+      prisma.payment.update({
+        where: { id: itemToDelete.paymentId },
+        data: {
+          value: {
+            decrement: itemToDelete.value,
+          },
+        },
+      }),
+      // 2. Deleta o item
+      prisma.paymentItem.delete({
+        where: { id: paymentItemId },
+      }),
+    ]);
+
+    res.status(200).json({
+      message: 'Item deletado e pagamento atualizado com sucesso.',
+      item: deletedItem,
+      payment: updatedPayment,
+    });
+  } catch (err) {
+    console.error('Erro na rota DELETE /payment/item/:itemId:', err);
+    res.status(500).json({ message: 'Erro ao deletar o item.' });
   }
 });
 

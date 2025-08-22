@@ -187,6 +187,7 @@ const AthleteForm = () => {
               type="tel"
               value={formData.phone}
               onChange={handleChange}
+              required
             />
           </Box>
           <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>

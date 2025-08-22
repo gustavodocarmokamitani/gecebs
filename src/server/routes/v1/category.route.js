@@ -1,22 +1,26 @@
-import express from 'express';
+// src/routes/category.route.js
+import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../../middleware/auth.js';
 
-const router = express.Router();
+const router = Router();
 const prisma = new PrismaClient();
 
 /**
  * POST /create
  * Cria uma nova categoria para o time.
+ * @access TEAM
  */
 router.post('/create', authenticateToken, async (req, res) => {
   try {
     const { name } = req.body;
     const { teamId, role } = req.user;
 
-    // Apenas managers podem criar categorias
-    if (role !== 'MANAGER') {
-      return res.status(403).json({ message: 'Acesso negado.' });
+    // Apenas o dono do time pode criar categorias
+    if (role !== 'TEAM') {
+      return res
+        .status(403)
+        .json({ message: 'Acesso negado. Apenas o proprietário da equipe pode criar categorias.' });
     }
 
     const newCategory = await prisma.category.create({
@@ -38,10 +42,19 @@ router.post('/create', authenticateToken, async (req, res) => {
 /**
  * GET /list
  * Lista todas as categorias de um time.
+ * @access MANAGER ou TEAM
  */
 router.get('/list', authenticateToken, async (req, res) => {
   try {
-    const { teamId } = req.user;
+    const { teamId, role } = req.user;
+
+    // Apenas managers e o dono do time podem listar categorias
+    if (role !== 'MANAGER' && role !== 'TEAM') {
+      return res.status(403).json({
+        message:
+          'Acesso negado. Apenas managers e o proprietário da equipe podem ver as categorias.',
+      });
+    }
 
     const categories = await prisma.category.findMany({
       where: {
