@@ -15,6 +15,35 @@ const Payment = {
   },
 
   /**
+   * Obtém a lista de atletas de um pagamento com seus status de pagamento.
+   * @param {number} paymentId - O ID do pagamento.
+   * @returns {Promise<Array>} A lista de atletas com status de pagamento.
+   */
+  getAthletesWithPaymentStatus: async (paymentId) => {
+    try {
+      const response = await api.get(`/payment/${paymentId}/confirmations`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Atualiza um item de um pagamento.
+   * Rota: PATCH /payment/item/:itemId
+   * @param {number} itemId - O ID do item a ser atualizado.
+   * @param {object} itemData - Dados do item (name, value, quantityEnabled).
+   */
+  updateItem: async (itemId, itemData) => {
+    try {
+      const response = await api.patch(`/payment/item/${itemId}`, itemData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
    * Adiciona um item a um pagamento.
    * Rota: POST /payment/:id/items
    * @param {number} paymentId - O ID do pagamento.

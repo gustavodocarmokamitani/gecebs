@@ -8,6 +8,11 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -19,7 +24,6 @@ import CustomInput from '../components/common/CustomInput';
 import ManagerCard from '../components/card/ManagerCard';
 import { useNavigate } from 'react-router-dom';
 import ManagerService from '../services/Manager';
-import UserService from '../services/User';
 import { toast } from 'react-toastify';
 
 const Manager = () => {
@@ -34,7 +38,10 @@ const Manager = () => {
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
 
-  // 1. A função de busca agora usa o serviço real
+  // Estados para o modal de confirmação
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [managerIdToDelete, setManagerIdToDelete] = useState(null);
+
   const fetchManagers = async () => {
     setIsLoading(true);
     setError(null);
@@ -62,20 +69,23 @@ const Manager = () => {
     navigate('/manager/new');
   };
 
-  const handleDeleteManagerClick = async (managerId) => {
-    const isConfirmed = window.confirm(
-      'Tem certeza de que deseja excluir este manager? Esta ação é irreversível.'
-    );
+  // Funções para controlar o modal de confirmação
+  const handleOpenDeleteDialog = (managerId) => {
+    setManagerIdToDelete(managerId);
+    setOpenDeleteDialog(true);
+  };
 
-    if (isConfirmed) {
+  const handleCloseDeleteDialog = () => {
+    setOpenDeleteDialog(false);
+    setManagerIdToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    handleCloseDeleteDialog();
+    if (managerIdToDelete) {
       try {
-        // Chamada direta para a rota de exclusão do manager.
-        // Toda a lógica (obter user, deletar user, etc.) fica no back-end.
-        await ManagerService.delete(managerId);
-
+        await ManagerService.delete(managerIdToDelete);
         toast.success('Manager excluído com sucesso.');
-
-        // Recarregar a lista para atualizar a visualização
         fetchManagers();
       } catch (err) {
         console.error('Erro ao excluir manager:', err);
@@ -85,19 +95,29 @@ const Manager = () => {
     }
   };
 
-  // Agrupar os managers por categoria (Esta lógica permanece a mesma pois já funciona com a estrutura de dados da API)
   const groupedManagers = managers.reduce((groups, manager) => {
-    manager.categories.forEach((cat) => {
-      const categoryId = cat.category.id;
-      const categoryName = cat.category.name;
-      if (!groups[categoryId]) {
-        groups[categoryId] = {
-          name: categoryName,
+    if (manager.categories && manager.categories.length > 0) {
+      manager.categories.forEach((cat) => {
+        const categoryId = cat.category.id;
+        const categoryName = cat.category.name;
+        if (!groups[categoryId]) {
+          groups[categoryId] = {
+            name: categoryName,
+            managers: [],
+          };
+        }
+        groups[categoryId].managers.push(manager);
+      });
+    } else {
+      const noCategoryKey = 'no-category-group';
+      if (!groups[noCategoryKey]) {
+        groups[noCategoryKey] = {
+          name: 'Sem Categoria',
           managers: [],
         };
       }
-      groups[categoryId].managers.push(manager);
-    });
+      groups[noCategoryKey].managers.push(manager);
+    }
     return groups;
   }, {});
 
@@ -218,7 +238,8 @@ const Manager = () => {
                     <ManagerCard
                       key={manager.id}
                       manager={manager}
-                      onDelete={handleDeleteManagerClick}
+                      // ✅ CORRIGIDO: Passando a função de abrir o diálogo de exclusão
+                      onDelete={() => handleOpenDeleteDialog(manager.id)}
                     />
                   ))}
                 </Box>
@@ -227,6 +248,33 @@ const Manager = () => {
           );
         })
       )}
+
+      {/* Dialog de confirmação de exclusão */}
+      <Dialog
+        open={openDeleteDialog}
+        onClose={handleCloseDeleteDialog}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{'Atenção: Ação Irreversível'}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Ao excluir este manager, o perfil de manager será removido permanentemente, juntamente
+            com as suas associações a categorias.
+            <br />
+            <br />
+            Esta ação é irreversível. Tem certeza que deseja continuar?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <CustomButton onClick={handleCloseDeleteDialog} variant="contained">
+            Cancelar
+          </CustomButton>
+          <CustomButton onClick={handleConfirmDelete} variant="contained" color="error" autoFocus>
+            Confirmar Exclusão
+          </CustomButton>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

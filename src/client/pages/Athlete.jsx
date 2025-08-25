@@ -1,4 +1,4 @@
-import react, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import AthleteCard from '../components/card/AthleteCard';
 import {
   Typography,
@@ -28,9 +28,8 @@ function Athlete() {
   const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
   const navigate = useNavigate();
 
-  // 👈 Substituindo o mock por estados
   const [athletes, setAthletes] = useState([]);
-  const [categories, setCategories] = useState([]); // Novo estado para as categorias
+  const [categories, setCategories] = useState([]);
   const [groupedAthletes, setGroupedAthletes] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -41,8 +40,11 @@ function Athlete() {
     setExpanded(isExpanded ? panel : false);
   };
 
+  // Lógica de agrupamento atualizada para incluir atletas sem categorias
   const groupAthletesByCategory = (allCategories, athletesToGroup) => {
     const groups = {};
+    const noCategoryKey = 'no-category-group';
+
     // Inicializa os grupos com as categorias conhecidas
     allCategories.forEach((cat) => {
       groups[cat.id] = {
@@ -51,14 +53,26 @@ function Athlete() {
       };
     });
 
+    // Adiciona o grupo 'Sem Categoria'
+    groups[noCategoryKey] = {
+      name: 'Sem Categoria',
+      athletes: [],
+    };
+
     athletesToGroup.forEach((athlete) => {
-      athlete.categories.forEach((cat) => {
-        const categoryId = cat.category.id;
-        if (groups[categoryId]) {
-          groups[categoryId].athletes.push(athlete);
-        }
-      });
+      if (athlete.categories && athlete.categories.length > 0) {
+        athlete.categories.forEach((cat) => {
+          const categoryId = cat.category.id;
+          if (groups[categoryId]) {
+            groups[categoryId].athletes.push(athlete);
+          }
+        });
+      } else {
+        // Adiciona o atleta ao grupo 'Sem Categoria'
+        groups[noCategoryKey].athletes.push(athlete);
+      }
     });
+
     return groups;
   };
 
@@ -66,7 +80,6 @@ function Athlete() {
     setIsLoading(true);
     setError(null);
     try {
-      // 👈 Buscando atletas e categorias em paralelo
       const [fetchedAthletes, fetchedCategories] = await Promise.all([
         AthleteService.list(),
         CategoryService.getAll(),
@@ -87,25 +100,15 @@ function Athlete() {
   }, []);
 
   useEffect(() => {
-    if (athletes.length > 0 && categories.length > 0) {
-      const filteredAthletes = athletes.filter(
-        (athlete) =>
-          athlete.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          athlete.lastName.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+    const filteredAthletes = athletes.filter(
+      (athlete) =>
+        athlete.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        athlete.lastName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (athletes.length > 0) {
       setGroupedAthletes(groupAthletesByCategory(categories, filteredAthletes));
-    } else if (athletes.length === 0 && categories.length > 0) {
-      // Caso não haja atletas, mas há categorias, inicializa os grupos vazios
-      const emptyGroups = {};
-      categories.forEach((cat) => {
-        emptyGroups[cat.id] = {
-          name: cat.name,
-          athletes: [],
-        };
-      });
-      setGroupedAthletes(emptyGroups);
-    } else if (!isLoading && !error) {
-      // Se não está carregando e não há erro, mas não há dados
+    } else {
       setGroupedAthletes({});
     }
   }, [athletes, categories, searchTerm]);
@@ -114,7 +117,6 @@ function Athlete() {
     navigate('/athlete/new');
   };
 
-  // Funções de edição e exclusão (ajustadas para usar a API)
   const handleEdit = (id) => {
     navigate(`/athlete/edit/${id}`);
   };
@@ -124,7 +126,7 @@ function Athlete() {
       try {
         await AthleteService.remove(id);
         toast.success('Atleta excluído com sucesso!');
-        fetchAthletesAndCategories(); // Recarrega os dados após a exclusão
+        fetchAthletesAndCategories();
       } catch (err) {
         console.error('Erro ao excluir atleta:', err);
         toast.error('Erro ao excluir o atleta.');
@@ -134,7 +136,6 @@ function Athlete() {
 
   return (
     <Box>
-      {/* ... (cabeçalho, divider e input de busca) */}
       <Box
         sx={{
           display: 'flex',
@@ -203,6 +204,11 @@ function Athlete() {
       ) : (
         Object.keys(groupedAthletes).map((categoryId, index) => {
           const group = groupedAthletes[categoryId];
+
+          // Renderiza o grupo apenas se houver atletas
+          if (group.athletes.length === 0) {
+            return null;
+          }
 
           return (
             <Accordion

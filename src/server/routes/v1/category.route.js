@@ -1,13 +1,88 @@
-// src/routes/category.route.js
-import { Router } from 'express';
+import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../../middleware/auth.js';
 
-const router = Router();
+const router = express.Router();
 const prisma = new PrismaClient();
 
+// ======================================================
+// ⚠️ Rotas GET
+// As rotas mais específicas devem vir antes das mais genéricas.
+// ======================================================
+
 /**
- * POST /create
+ * GET /categories/list
+ * Lista todas as categorias de um time.
+ * @access MANAGER ou TEAM
+ */
+router.get('/list', authenticateToken, async (req, res) => {
+  try {
+    const { teamId, role } = req.user;
+
+    if (role !== 'MANAGER' && role !== 'TEAM') {
+      return res.status(403).json({
+        message:
+          'Acesso negado. Apenas managers e o proprietário da equipe podem ver as categorias.',
+      });
+    }
+
+    const categories = await prisma.category.findMany({
+      where: {
+        teamId: teamId,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+
+    res.status(200).json(categories);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao listar categorias.' });
+  }
+});
+
+/**
+ * GET /categories/:id
+ * Busca uma categoria específica por ID.
+ * @access MANAGER ou TEAM
+ */
+router.get('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { teamId, role } = req.user;
+
+    if (role !== 'MANAGER' && role !== 'TEAM') {
+      return res.status(403).json({
+        message:
+          'Acesso negado. Apenas managers e o proprietário da equipe podem ver as categorias.',
+      });
+    }
+
+    const category = await prisma.category.findUnique({
+      where: {
+        id: parseInt(id),
+      },
+    });
+
+    if (!category || category.teamId !== teamId) {
+      return res.status(404).json({ message: 'Categoria não encontrada ou acesso negado.' });
+    }
+
+    res.status(200).json(category);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao buscar a categoria.' });
+  }
+});
+
+// ======================================================
+// ⚠️ Rotas de Modificação
+// Manter as rotas de POST, PATCH e DELETE agrupadas.
+// ======================================================
+
+/**
+ * POST /categories/create
  * Cria uma nova categoria para o time.
  * @access TEAM
  */
@@ -16,7 +91,6 @@ router.post('/create', authenticateToken, async (req, res) => {
     const { name } = req.body;
     const { teamId, role } = req.user;
 
-    // Apenas o dono do time pode criar categorias
     if (role !== 'TEAM') {
       return res
         .status(403)
@@ -40,65 +114,87 @@ router.post('/create', authenticateToken, async (req, res) => {
 });
 
 /**
- * GET /category/list-all-team-categories
- * Lista todas as categorias de um time.
- * Essa rota pode estar em um arquivo de rotas separado, mas para simplicidade, vamos adicioná-la aqui.
+ * PATCH /categories/:id
+ * Atualiza o nome de uma categoria.
+ * @access MANAGER ou TEAM
  */
-
-router.get('/list-all-team-categories', authenticateToken, async (req, res) => {
+router.patch('/:id', authenticateToken, async (req, res) => {
   try {
-    const { teamId } = req.user;
+    const { id } = req.params;
+    const { name } = req.body;
+    const { teamId, role } = req.user;
 
-    if (!teamId) {
-      console.error('ID do time não encontrado no objeto do usuário autenticado.');
-      return res
-        .status(401)
-        .json({ message: 'Acesso não autorizado. O usuário não está associado a um time.' });
+    if (role !== 'MANAGER' && role !== 'TEAM') {
+      return res.status(403).json({
+        message:
+          'Acesso negado. Apenas managers e o proprietário da equipe podem atualizar categorias.',
+      });
     }
 
-    const categories = await prisma.category.findMany({
+    const updatedCategory = await prisma.category.update({
       where: {
+        id: parseInt(id),
         teamId: teamId,
       },
-      orderBy: {
-        name: 'asc',
+      data: {
+        name,
       },
     });
 
-    res.status(200).json(categories);
+    res.status(200).json({
+      message: 'Categoria atualizada com sucesso.',
+      category: updatedCategory,
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Erro ao listar as categorias do time.' });
+    if (err.code === 'P2025') {
+      return res
+        .status(404)
+        .json({ message: 'Categoria não encontrada ou não pertence ao seu time.' });
+    }
+    res.status(500).json({ message: 'Erro ao atualizar a categoria.' });
   }
 });
 
 /**
- * GET /list
- * Lista todas as categorias de um time.
+ * DELETE /categories/:id
+ * Deleta uma categoria.
  * @access MANAGER ou TEAM
  */
-router.get('/list', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   try {
+    const { id } = req.params;
     const { teamId, role } = req.user;
 
-    // Apenas managers e o dono do time podem listar categorias
     if (role !== 'MANAGER' && role !== 'TEAM') {
       return res.status(403).json({
         message:
-          'Acesso negado. Apenas managers e o proprietário da equipe podem ver as categorias.',
+          'Acesso negado. Apenas managers e o proprietário da equipe podem deletar categorias.',
       });
     }
 
-    const categories = await prisma.category.findMany({
+    const categoryToDelete = await prisma.category.findUnique({
       where: {
-        teamId: teamId,
+        id: parseInt(id),
       },
     });
 
-    res.status(200).json(categories);
+    if (!categoryToDelete || categoryToDelete.teamId !== teamId) {
+      return res
+        .status(404)
+        .json({ message: 'Categoria não encontrada ou não pertence ao seu time.' });
+    }
+
+    await prisma.category.delete({
+      where: {
+        id: parseInt(id),
+      },
+    });
+
+    res.status(200).json({ message: 'Categoria deletada com sucesso.' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Erro ao listar categorias.' });
+    res.status(500).json({ message: 'Erro ao deletar a categoria.' });
   }
 });
 

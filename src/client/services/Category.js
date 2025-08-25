@@ -13,15 +13,24 @@ const CategoryService = {
     }
   },
 
-  /**
-   * Lista todas as categorias de um time.
-   * Rota: GET /category/list-all-team-categories
-   */
-  listAllTeamCategories: async () => {
+  // Busca uma categoria específica por ID
+  getById: async (id) => {
     try {
-      const response = await api.get('/categories/list-all-team-categories');
+      // Usando a nova rota GET /categories/:id
+      const response = await api.get(`/categories/${id}`);
       return response.data;
     } catch (error) {
+      console.error('Erro no serviço de categorias (getById):', error);
+      throw error;
+    }
+  },
+
+  update: async (categoryId, categoryData) => {
+    try {
+      const response = await api.patch(`/categories/${categoryId}`, categoryData);
+      return response.data;
+    } catch (error) {
+      console.error('Erro no serviço de categorias (update):', error);
       throw error;
     }
   },
@@ -33,18 +42,6 @@ const CategoryService = {
       return response.data;
     } catch (error) {
       console.error('Erro no serviço de categorias (create):', error);
-      throw error;
-    }
-  },
-
-  // Atualiza uma categoria existente
-  // Supondo um endpoint de API: PUT /categories/:id
-  update: async (categoryId, categoryData) => {
-    try {
-      const response = await api.put(`/categories/${categoryId}`, categoryData);
-      return response.data;
-    } catch (error) {
-      console.error('Erro no serviço de categorias (update):', error);
       throw error;
     }
   },

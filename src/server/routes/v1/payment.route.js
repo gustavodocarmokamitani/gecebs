@@ -5,6 +5,26 @@ import { authenticateToken } from '../../middleware/auth.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// Funções Auxiliares
+// ---
+/**
+ * Funcao auxiliar para recalcular e atualizar o valor total de um pagamento.
+ */
+const updatePaymentTotal = async (paymentId) => {
+  const items = await prisma.paymentItem.findMany({
+    where: { paymentId: paymentId },
+  });
+
+  const totalValue = items.reduce((sum, item) => sum + item.value, 0);
+
+  await prisma.payment.update({
+    where: { id: paymentId },
+    data: { value: totalValue },
+  });
+};
+
+// Rotas
+// ---
 /**
  * GET /payment/list-all-team-payments
  * Lista todos os pagamentos criados para um time.
@@ -62,6 +82,67 @@ router.get('/list-all-team-payments', authenticateToken, async (req, res) => {
 });
 
 /**
+ * GET /payment/:id/confirmations
+ * Busca todos os atletas de um pagamento, com seus status de pagamento.
+ */
+router.get('/:id/confirmations', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { teamId, role } = req.user;
+    const paymentId = parseInt(id);
+
+    // 1. Busca o pagamento para pegar a categoria e verificar o time
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+      select: { categoryId: true, teamId: true },
+    });
+
+    if (!payment || payment.teamId !== teamId) {
+      return res.status(404).json({ message: 'Pagamento não encontrado ou acesso negado.' });
+    }
+
+    // 2. Busca todos os atletas da categoria do pagamento
+    const categoryAthletes = await prisma.categoryAthlete.findMany({
+      where: { categoryId: payment.categoryId },
+      include: {
+        athlete: {
+          select: {
+            firstName: true,
+            lastName: true,
+            user: { select: { id: true } },
+          },
+        },
+      },
+    });
+
+    // 3. Busca os pagamentos confirmados para este pagamento
+    const paidBy = await prisma.paymentUser.findMany({
+      where: { paymentId: paymentId },
+      select: {
+        userId: true,
+        paidAt: true,
+      },
+    });
+
+    // 4. Mapeia e cruza os dados
+    const athletesWithStatus = categoryAthletes.map((catAthlete) => {
+      const paymentStatus = paidBy.find((p) => p.userId === catAthlete.athlete.user.id);
+      return {
+        userId: catAthlete.athlete.user.id,
+        firstName: catAthlete.athlete.firstName,
+        lastName: catAthlete.athlete.lastName,
+        status: !!paymentStatus?.paidAt, // true = pago, false = não pago
+      };
+    });
+
+    res.status(200).json(athletesWithStatus);
+  } catch (err) {
+    console.error('Erro ao buscar status de pagamento:', err);
+    res.status(500).json({ message: 'Erro ao buscar status de pagamento.' });
+  }
+});
+
+/**
  * GET /payment/:id
  * Busca um pagamento específico por ID, incluindo seus itens.
  */
@@ -77,7 +158,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
         id: paymentId,
       },
       include: {
-        items: true, // Inclui todos os PaymentItems associados
+        items: true,
+        event: true,
       },
     });
 
@@ -89,6 +171,49 @@ router.get('/:id', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Erro ao buscar o pagamento.' });
+  }
+});
+
+/**
+ * PATCH /payment/item/:id
+ * Atualiza um item de pagamento e recalcula o valor total do pagamento.
+ */
+router.patch('/item/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, value, quantityEnabled } = req.body;
+    const { teamId } = req.user;
+
+    const itemId = parseInt(id);
+    const itemValue = parseFloat(value);
+
+    // 1. Verifique se o item de pagamento pertence ao time do usuário
+    const item = await prisma.paymentItem.findUnique({
+      where: { id: itemId },
+      include: { payment: true },
+    });
+
+    if (!item || item.payment.teamId !== teamId) {
+      return res.status(404).json({ message: 'Item não encontrado ou acesso negado.' });
+    }
+
+    // 2. Atualize o item
+    const updatedItem = await prisma.paymentItem.update({
+      where: { id: itemId },
+      data: {
+        name,
+        value: itemValue,
+        quantityEnabled,
+      },
+    });
+
+    // 3. Recalcule e atualize o valor total do pagamento.
+    await updatePaymentTotal(item.payment.id);
+
+    res.status(200).json(updatedItem);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao atualizar o item do pagamento.' });
   }
 });
 
@@ -406,32 +531,22 @@ router.post('/:id/items', authenticateToken, async (req, res) => {
       return res.status(403).json({ message: 'Acesso negado.' });
     }
 
-    // A transação garante que as duas operações ocorram juntas
-    const [newItem, updatedPayment] = await prisma.$transaction([
-      // 1. Cria o novo item
-      prisma.paymentItem.create({
-        data: {
-          name,
-          value: itemValue,
-          quantityEnabled,
-          paymentId: paymentId,
-        },
-      }),
-      // 2. Incrementa o valor do pagamento
-      prisma.payment.update({
-        where: { id: paymentId },
-        data: {
-          value: {
-            increment: itemValue,
-          },
-        },
-      }),
-    ]);
+    // Cria o novo item
+    const newItem = await prisma.paymentItem.create({
+      data: {
+        name,
+        value: itemValue,
+        quantityEnabled,
+        paymentId: paymentId,
+      },
+    });
+
+    // Recalcula e atualiza o valor total do pagamento
+    await updatePaymentTotal(paymentId);
 
     res.status(201).json({
       message: 'Item adicionado e pagamento atualizado com sucesso.',
       item: newItem,
-      payment: updatedPayment,
     });
   } catch (err) {
     console.error('Erro na rota POST /payment/:id/items:', err);
@@ -453,7 +568,7 @@ router.delete('/item/:itemId', authenticateToken, async (req, res) => {
       return res.status(403).json({ message: 'Acesso negado.' });
     }
 
-    // Primeiro, encontra o item para obter o valor e o paymentId
+    // Primeiro, encontra o item para obter o paymentId
     const itemToDelete = await prisma.paymentItem.findUnique({
       where: { id: paymentItemId },
     });
@@ -462,27 +577,17 @@ router.delete('/item/:itemId', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'Item não encontrado.' });
     }
 
-    // A transação garante que as duas operações ocorram juntas
-    const [deletedItem, updatedPayment] = await prisma.$transaction([
-      // 1. Decrementa o valor do pagamento
-      prisma.payment.update({
-        where: { id: itemToDelete.paymentId },
-        data: {
-          value: {
-            decrement: itemToDelete.value,
-          },
-        },
-      }),
-      // 2. Deleta o item
-      prisma.paymentItem.delete({
-        where: { id: paymentItemId },
-      }),
-    ]);
+    // Deleta o item
+    const deletedItem = await prisma.paymentItem.delete({
+      where: { id: paymentItemId },
+    });
+
+    // Recalcula e atualiza o valor total do pagamento
+    await updatePaymentTotal(itemToDelete.paymentId);
 
     res.status(200).json({
       message: 'Item deletado e pagamento atualizado com sucesso.',
       item: deletedItem,
-      payment: updatedPayment,
     });
   } catch (err) {
     console.error('Erro na rota DELETE /payment/item/:itemId:', err);

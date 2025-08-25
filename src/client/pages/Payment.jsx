@@ -8,6 +8,11 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
@@ -20,23 +25,22 @@ import CustomInput from '../components/common/CustomInput';
 import PaymentService from '../services/Payment';
 import { toast } from 'react-toastify';
 
-// ⚠️ Removemos os dados mockados de pagamentos e categoryLabels
-// const pagamentos = [...];
-// const categoryLabels = {...};
-
 function Payment() {
   const theme = useTheme();
   const deviceType = useResponsive();
   const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
   const navigate = useNavigate();
 
-  // 👈 Novos estados para os dados da API e controle de UI
   const [payments, setPayments] = useState([]);
   const [groupedPayments, setGroupedPayments] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
+
+  // Novos estados para o modal de confirmação
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [paymentIdToDelete, setPaymentIdToDelete] = useState(null);
 
   const handleAccordionChange = (panel) => (event, isExpanded) => {
     setExpanded(isExpanded ? panel : false);
@@ -45,7 +49,6 @@ function Payment() {
   const groupPaymentsByCategory = (paymentsToGroup) => {
     const groups = {};
     paymentsToGroup.forEach((payment) => {
-      // ⚠️ Usamos o 'category' aninhado que vem da API
       const categoryId = payment.category?.id || 'no-category';
       if (!groups[categoryId]) {
         groups[categoryId] = {
@@ -58,7 +61,6 @@ function Payment() {
     return groups;
   };
 
-  // 👈 Função para buscar os pagamentos da API
   const fetchPayments = async () => {
     setIsLoading(true);
     setError(null);
@@ -76,7 +78,7 @@ function Payment() {
 
   useEffect(() => {
     fetchPayments();
-  }, []); // 👈 A chamada da API é feita apenas na montagem inicial
+  }, []);
 
   useEffect(() => {
     const filteredPayments = payments.filter(
@@ -91,13 +93,24 @@ function Payment() {
     navigate('/payment/new');
   };
 
-  // ⚠️ Adicionei funções para exclusão e edição, que você pode passar para o PaymentCard
-  const handleDeletePayment = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir este pagamento?')) {
+  // Funções para o modal de exclusão
+  const handleOpenDeleteDialog = (id) => {
+    setPaymentIdToDelete(id);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setOpenDeleteDialog(false);
+    setPaymentIdToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    handleCloseDeleteDialog();
+    if (paymentIdToDelete) {
       try {
-        await PaymentService.delete(id);
+        await PaymentService.remove(paymentIdToDelete);
         toast.success('Pagamento excluído com sucesso!');
-        fetchPayments(); // Recarrega os dados para atualizar a lista
+        fetchPayments();
       } catch (err) {
         console.error('Erro ao excluir pagamento:', err);
         toast.error('Erro ao excluir o pagamento.');
@@ -164,7 +177,6 @@ function Payment() {
         Pagamentos
       </Typography>
 
-      {/* 👈 Lógica de renderização condicional */}
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
           <CircularProgress />
@@ -226,7 +238,7 @@ function Payment() {
                       key={payment.id}
                       payment={payment}
                       onEdit={() => handleEditPayment(payment.id)}
-                      onDelete={() => handleDeletePayment(payment.id)}
+                      onDelete={() => handleOpenDeleteDialog(payment.id)}
                     />
                   ))}
                 </Box>
@@ -235,6 +247,32 @@ function Payment() {
           );
         })
       )}
+
+      {/* Modal de confirmação de exclusão de pagamento */}
+      <Dialog
+        open={openDeleteDialog}
+        onClose={handleCloseDeleteDialog}
+        aria-labelledby="payment-dialog-title"
+        aria-describedby="payment-dialog-description"
+      >
+        <DialogTitle id="payment-dialog-title">{'Atenção: Ação Irreversível'}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="payment-dialog-description">
+            Ao excluir este pagamento, você irá deletar permanentemente **todos os itens**
+            associados a ele, bem como o **histórico de quem já pagou**. Esta ação não pode ser
+            desfeita.
+            <br />
+            <br />
+            Tem certeza que deseja continuar?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <CustomButton onClick={handleCloseDeleteDialog}>Cancelar</CustomButton>
+          <CustomButton onClick={handleConfirmDelete} variant="contained" color="error" autoFocus>
+            Confirmar Exclusão
+          </CustomButton>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

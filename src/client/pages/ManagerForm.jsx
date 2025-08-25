@@ -1,5 +1,4 @@
 // src/pages/ManagerForm.jsx
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -21,8 +20,8 @@ import { useResponsive } from '../hooks/useResponsive';
 import ManagerService from '../services/Manager';
 import CategoryService from '../services/Category';
 import { toast } from 'react-toastify';
-import usePhoneInput from '../hooks/usePhoneInput'; // 👈 Importando o hook
-import Auth from '../services/Auth'; // 👈 Importando o serviço de autenticação para verificar o telefone
+import usePhoneInput from '../hooks/usePhoneInput';
+import Auth from '../services/Auth';
 
 const ManagerForm = () => {
   const { managerId } = useParams();
@@ -33,7 +32,6 @@ const ManagerForm = () => {
 
   const isEditing = !!managerId;
 
-  // 1. Usar o hook para gerenciar o input de telefone
   const { phoneNumber, phoneError, handlePhoneChange } = usePhoneInput();
 
   const [formData, setFormData] = useState({
@@ -47,7 +45,6 @@ const ManagerForm = () => {
   const [error, setError] = useState(null);
   const [phoneServerError, setPhoneServerError] = useState('');
 
-  // Efeito para carregar os dados
   useEffect(() => {
     const fetchFormData = async () => {
       setIsLoading(true);
@@ -59,13 +56,15 @@ const ManagerForm = () => {
         if (isEditing) {
           const managerToEdit = await ManagerService.getById(managerId);
           if (managerToEdit) {
+            // ✅ CORREÇÃO: Usar a propriedade `category` para extrair o ID de forma segura
+            const managerCategoriesIds = managerToEdit.categories?.map((c) => c.category.id) || [];
+
             setFormData({
               firstName: managerToEdit.firstName,
               lastName: managerToEdit.lastName,
-              categories: managerToEdit.categories.map((c) => c.category.id),
+              categories: managerCategoriesIds,
             });
-            // Definir o valor do telefone no hook
-            handlePhoneChange({ target: { value: managerToEdit.phone } });
+            handlePhoneChange({ target: { value: managerToEdit.user.username } }); // ✅ CORREÇÃO: o telefone está no user.username
           } else {
             setError('Manager não encontrado.');
             toast.error('Manager não encontrado.');
@@ -81,19 +80,13 @@ const ManagerForm = () => {
       }
     };
     fetchFormData();
-  }, [managerId, isEditing, navigate]);
+  }, [managerId, isEditing, navigate, handlePhoneChange]);
 
-  // Efeito para verificar se o telefone já existe
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
-      // Evita a verificação ao carregar no modo de edição
-      if (isEditing) {
-        return;
-      }
-
       const phoneToVerify = phoneNumber.replace(/\D/g, '');
 
-      if (phoneToVerify.length >= 10) {
+      if (phoneToVerify.length >= 10 && !isEditing) {
         try {
           const result = await Auth.checkPhoneExists(phoneToVerify);
           if (result.exists) {
@@ -136,7 +129,8 @@ const ManagerForm = () => {
       return;
     }
 
-    if (phoneError || phoneServerError) {
+    // A verificação de telefone só é necessária para criação, pois o campo é desabilitado na edição
+    if (!isEditing && (phoneError || phoneServerError)) {
       toast.error('Corrija os erros do telefone antes de continuar.');
       return;
     }
@@ -147,15 +141,21 @@ const ManagerForm = () => {
     const cleanedPhone = phoneNumber.replace(/\D/g, '');
 
     try {
-      const dataToSubmit = {
-        ...formData,
-        phone: cleanedPhone,
-      };
-
       if (isEditing) {
+        // ✅ CORREÇÃO: Enviar o array de categorias no objeto de dados.
+        const dataToSubmit = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: cleanedPhone,
+          categories: formData.categories, // <-- AGORA INCLUÍDO!
+        };
         await ManagerService.update(managerId, dataToSubmit);
         toast.success('Manager atualizado com sucesso!');
       } else {
+        const dataToSubmit = {
+          ...formData,
+          phone: cleanedPhone,
+        };
         await ManagerService.create(dataToSubmit);
         toast.success('Manager criado com sucesso!');
       }

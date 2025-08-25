@@ -21,9 +21,9 @@ import { toast } from 'react-toastify';
 
 // Dados que não mudam e podem ficar aqui
 const eventTypes = [
-  { value: 'TRAINING', label: 'Treinamento' },
-  { value: 'CHAMPIONSHIP', label: 'Campeonato' },
-  { value: 'OTHER', label: 'Outros' },
+  { value: 'Treinamento', label: 'Treinamento' },
+  { value: 'Campeonato', label: 'Campeonato' },
+  { value: 'Outros', label: 'Outros' },
 ];
 
 const EventForm = () => {
@@ -50,7 +50,7 @@ const EventForm = () => {
   // Função para buscar as categorias do backend
   const fetchCategories = async () => {
     try {
-      const fetchedCategories = await CategoryService.listAllTeamCategories();
+      const fetchedCategories = await CategoryService.getAll();
       setCategories(fetchedCategories);
       console.log(fetchedCategories);
     } catch (err) {

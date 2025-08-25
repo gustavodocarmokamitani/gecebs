@@ -1,4 +1,3 @@
-// src/routes/v1/athlete.route.js
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
@@ -55,6 +54,47 @@ router.get('/list-athletes', authenticateToken, async (req, res) => {
 });
 
 /**
+ * GET /list-athletes-without-categories
+ * Lista todos os atletas de um time sem as categorias.
+ * @access MANAGER ou TEAM
+ * 👈 Nova rota adicionada
+ */
+router.get('/list-athletes-without-categories', authenticateToken, async (req, res) => {
+  try {
+    const { teamId, role } = req.user;
+
+    if (role !== 'MANAGER' && role !== 'TEAM') {
+      return res.status(403).json({
+        message: 'Acesso negado. Apenas managers e o proprietário da equipe podem ver os atletas.',
+      });
+    }
+
+    const athletes = await prisma.athlete.findMany({
+      where: {
+        user: {
+          teamId: teamId,
+        },
+      },
+      // Inclui apenas os dados do usuário, sem as categorias
+      include: {
+        user: {
+          select: {
+            username: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+    res.status(200).json(athletes);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao listar os atletas.' });
+  }
+});
+
+/**
  * POST /create-athlete
  * Cria um novo usuário (atleta) para o time.
  */
@@ -69,6 +109,7 @@ router.post('/create-athlete', authenticateToken, async (req, res) => {
       confederationId,
       houseNumber,
       categories,
+      shirtNumber, // 👈 Adicionando shirtNumber
     } = req.body;
 
     const { teamId, role } = req.user;
@@ -120,6 +161,7 @@ router.post('/create-athlete', authenticateToken, async (req, res) => {
             federationId,
             confederationId,
             houseNumber,
+            shirtNumber, // 👈 Adicionando shirtNumber
             categories: {
               createMany: {
                 data: categories.map((categoryId) => ({ categoryId })),
@@ -168,7 +210,7 @@ router.patch('/update-athlete/:id', authenticateToken, async (req, res) => {
       confederationId,
       houseNumber,
       shirtNumber,
-      categoryIds,
+      categories, // 👈 Alterado para `categories` para corresponder ao front-end
     } = req.body;
 
     if (role !== 'MANAGER' && role !== 'TEAM') {
@@ -199,13 +241,13 @@ router.patch('/update-athlete/:id', authenticateToken, async (req, res) => {
         },
       });
 
-      if (categoryIds) {
+      if (categories) {
         await prisma.categoryAthlete.deleteMany({
           where: { athleteId: Number(id) },
         });
 
-        if (categoryIds.length > 0) {
-          const newAssociations = categoryIds.map((categoryId) => ({
+        if (categories.length > 0) {
+          const newAssociations = categories.map((categoryId) => ({
             athleteId: Number(id),
             categoryId: categoryId,
           }));
@@ -279,6 +321,51 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Erro ao excluir o atleta.' });
+  }
+});
+
+/**
+ * GET /athlete/:id
+ * Busca um único atleta por ID.
+ * @access MANAGER ou TEAM
+ */
+router.get('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { teamId, role } = req.user;
+
+    // Verificação de acesso para garantir que apenas o manager ou o time dono possa ver
+    if (role !== 'MANAGER' && role !== 'TEAM') {
+      return res.status(403).json({ message: 'Acesso negado.' });
+    }
+
+    const athlete = await prisma.athlete.findUnique({
+      where: { id: Number(id) },
+      include: {
+        user: {
+          select: {
+            username: true,
+            email: true,
+            role: true,
+            teamId: true,
+          },
+        },
+        categories: {
+          include: {
+            category: true,
+          },
+        },
+      },
+    });
+
+    if (!athlete || athlete.user.teamId !== teamId) {
+      return res.status(404).json({ message: 'Atleta não encontrado no seu time.' });
+    }
+
+    res.status(200).json(athlete);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao buscar o atleta.' });
   }
 });
 

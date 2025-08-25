@@ -20,7 +20,6 @@ const Athlete = {
   create: async (athleteData) => {
     try {
       const response = await api.post('/athlete/create-athlete', athleteData);
-
       return response.data;
     } catch (error) {
       throw error;
@@ -34,18 +33,6 @@ const Athlete = {
   getById: async (id) => {
     try {
       const response = await api.get(`/athlete/${id}`);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  /**
-   * Lista todos os atletas do time.
-   */
-  list: async () => {
-    try {
-      const response = await api.get('/athlete/list-athletes');
       return response.data;
     } catch (error) {
       throw error;
@@ -73,6 +60,19 @@ const Athlete = {
   remove: async (id) => {
     try {
       const response = await api.delete(`/athlete/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Lista todos os atletas do time sem as informações de categoria.
+   * 👈 Novo método adicionado
+   */
+  listWithoutCategories: async () => {
+    try {
+      const response = await api.get('/athlete/list-athletes-without-categories');
       return response.data;
     } catch (error) {
       throw error;

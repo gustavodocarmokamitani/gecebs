@@ -17,16 +17,27 @@ const Manager = {
     }
   },
 
-  // ... (As outras funções como update e delete permanecem as mesmas por enquanto)
-  // Nota: Você pode precisar ajustar a função de atualização para também aceitar managerCategoriesIds, caso queira permitir a alteração das categorias de um manager existente.
+  /**
+   * Busca um manager por ID.
+   * Rota: GET /manager/:id
+   * @param {number} managerId - O ID do manager.
+   */
+  getById: async (managerId) => {
+    try {
+      const response = await api.get(`/manager/${managerId}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 
   /**
-   * Exemplo de como ficaria a busca de managers com as categorias associadas
-   * Essa rota precisa ser criada no backend para funcionar
+   * Lista todos os managers de um time, incluindo as categorias que eles gerenciam.
+   * Rota: GET /manager/list-all
    */
   getAllTeamManagers: async () => {
     try {
-      const response = await api.get('/manager/list-all'); // Rota a ser criada no backend
+      const response = await api.get('/manager/list-all');
       return response.data;
     } catch (error) {
       throw error;
@@ -37,11 +48,12 @@ const Manager = {
    * Atualiza os dados de um manager existente.
    * Rota: PATCH /manager/update/:id
    * @param {number} managerId - O ID do manager a ser atualizado.
-   * @param {object} managerData - Dados para atualização (firstName, lastName, phone).
+   * @param {object} managerData - Dados para atualização.
    */
+
   update: async (managerId, managerData) => {
     try {
-      const response = await api.patch(`/manager/update/${managerId}`, managerData);
+      const response = await api.patch(`/manager/update/${managerId}`, managerData); // <-- Esta rota agora está correta!
       return response.data;
     } catch (error) {
       throw error;

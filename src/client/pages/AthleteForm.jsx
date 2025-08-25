@@ -5,10 +5,10 @@ import {
   Typography,
   CircularProgress,
   Divider,
-  FormControl, // 👈 Adicionado
-  FormLabel, // 👈 Adicionado
-  FormGroup, // 👈 Adicionado
-  FormControlLabel, // 👈 Adicionado
+  FormControl,
+  FormLabel,
+  FormGroup,
+  FormControlLabel,
 } from '@mui/material';
 import CustomInput from '../components/common/CustomInput';
 import CustomButton from '../components/common/CustomButton';
@@ -31,6 +31,7 @@ const AthleteForm = () => {
 
   const isEditing = !!athleteId;
 
+  // Usa um estado local para o telefone, ou ajuste o hook para aceitar um valor inicial
   const { phoneNumber, phoneError, handlePhoneChange } = usePhoneInput();
 
   const [formData, setFormData] = useState({
@@ -48,7 +49,6 @@ const AthleteForm = () => {
   const [phoneServerError, setPhoneServerError] = useState('');
   const [availableCategories, setAvailableCategories] = useState([]);
 
-  // Efeito para carregar categorias disponíveis e dados do atleta
   useEffect(() => {
     const fetchCategoriesAndAthlete = async () => {
       setIsLoading(true);
@@ -59,17 +59,22 @@ const AthleteForm = () => {
 
         if (isEditing) {
           const athleteToEdit = await Athlete.getById(athleteId);
+          console.log(athleteToEdit);
+
           if (athleteToEdit) {
             setFormData({
               firstName: athleteToEdit.firstName,
               lastName: athleteToEdit.lastName,
-              federationId: athleteToEdit.federationId,
-              confederationId: athleteToEdit.confederationId,
-              birthDate: athleteToEdit.birthDate.split('T')[0],
-              shirtNumber: athleteToEdit.shirtNumber,
-              categories: athleteToEdit.categories.map((cat) => cat.id),
+              federationId: athleteToEdit.federationId || '', // Handle potential nulls
+              confederationId: athleteToEdit.confederationId || '', // Handle potential nulls
+              birthDate: athleteToEdit.birthDate ? athleteToEdit.birthDate.split('T')[0] : '',
+              // 💡 CORRECTION: Use nullish coalescing to ensure the value is a string, not null.
+              shirtNumber: athleteToEdit.shirtNumber ?? '',
+              categories: athleteToEdit.categories?.map((cat) => cat.category.id) || [],
             });
-            handlePhoneChange({ target: { value: athleteToEdit.phone } });
+
+            const userPhone = athleteToEdit.user?.username || '';
+            handlePhoneChange({ target: { value: userPhone } });
           } else {
             setError('Atleta não encontrado.');
             toast.error('Atleta não encontrado.');
@@ -87,7 +92,6 @@ const AthleteForm = () => {
     fetchCategoriesAndAthlete();
   }, [athleteId, isEditing, navigate, handlePhoneChange]);
 
-  // Efeito para verificar se o telefone já existe
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
       if (isEditing) {
@@ -130,13 +134,11 @@ const AthleteForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validação do telefone
     if (phoneError || phoneServerError) {
       toast.error('Corrija os erros do telefone antes de continuar.');
       return;
     }
 
-    // 🚀 Validação de categorias (o que você precisa adicionar)
     if (formData.categories.length === 0) {
       toast.error('Por favor, selecione pelo menos uma categoria.');
       return;
@@ -223,133 +225,141 @@ const AthleteForm = () => {
         Dados do Atleta
       </Typography>
 
-      <Box
-        component="form"
-        onSubmit={handleSubmit}
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 2,
-          mr: isMobile ? 0 : 5,
-        }}
-      >
+      {isLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : error ? (
+        <Typography color="error" align="center">
+          {error}
+        </Typography>
+      ) : (
         <Box
+          component="form"
+          onSubmit={handleSubmit}
           sx={{
             display: 'flex',
-            flexWrap: 'wrap',
+            flexDirection: 'column',
             gap: 2,
+            mr: isMobile ? 0 : 5,
           }}
         >
-          <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
-            <CustomInput
-              label="Nome"
-              name="firstName"
-              value={formData.firstName}
-              onChange={handleChange}
-              required
-            />
-          </Box>
-          <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
-            <CustomInput
-              label="Sobrenome"
-              name="lastName"
-              value={formData.lastName}
-              onChange={handleChange}
-              required
-            />
-          </Box>
-          <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
-            <CustomInput
-              label="Telefone"
-              name="phone"
-              type="tel"
-              value={phoneNumber}
-              onChange={handlePhoneChange}
-              required
-              disabled={isEditing}
-              error={!!phoneError || !!phoneServerError}
-              helperText={phoneError || phoneServerError}
-            />
-          </Box>
-          <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
-            <CustomInput
-              label="Data de Nascimento"
-              name="birthDate"
-              type="date"
-              required
-              value={formData.birthDate}
-              onChange={handleChange}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Box>
-          <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
-            <CustomInput
-              label="Nº da Federação"
-              name="federationId"
-              value={formData.federationId}
-              onChange={handleChange}
-            />
-          </Box>
-          <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
-            <CustomInput
-              label="Nº da Confederação"
-              name="confederationId"
-              value={formData.confederationId}
-              onChange={handleChange}
-            />
-          </Box>
-          <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
-            <CustomInput
-              label="Nº da Camisa"
-              name="shirtNumber"
-              type="number"
-              value={formData.shirtNumber}
-              onChange={handleChange}
-            />
-          </Box>
-        </Box>
-
-        {/* 🚀 Seção de Checkbox para Categorias */}
-        <FormControl component="fieldset" variant="standard" sx={{ mt: 2 }}>
-          <FormLabel component="legend" sx={{ color: theme.palette.text.secondary }}>
-            Categorias
-          </FormLabel>
-          <FormGroup row>
-            {Array.isArray(availableCategories) && availableCategories.length > 0 ? (
-              availableCategories.map((category) => (
-                <FormControlLabel
-                  key={category.id}
-                  control={
-                    <CustomCheckbox
-                      checked={formData.categories.includes(category.id)}
-                      onChange={() => handleCategoryChange(category.id)}
-                    />
-                  }
-                  label={
-                    <Typography color={theme.palette.text.secondary}>{category.name}</Typography>
-                  }
-                />
-              ))
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                Nenhuma categoria disponível.
-              </Typography>
-            )}
-          </FormGroup>
-        </FormControl>
-        {/* Fim da Seção de Checkbox */}
-
-        <Box sx={{ mt: 2 }}>
-          <CustomButton
-            fullWidth
-            type="submit"
-            variant="contained"
-            disabled={isLoading || !!phoneError || !!phoneServerError}
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 2,
+            }}
           >
-            {isLoading ? <CircularProgress size={24} /> : 'Salvar'}
-          </CustomButton>
+            <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
+              <CustomInput
+                label="Nome"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                required
+              />
+            </Box>
+            <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
+              <CustomInput
+                label="Sobrenome"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                required
+              />
+            </Box>
+            <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
+              <CustomInput
+                label="Telefone"
+                name="phone"
+                type="tel"
+                value={phoneNumber}
+                onChange={handlePhoneChange}
+                required
+                disabled={isEditing}
+                error={!!phoneError || !!phoneServerError}
+                helperText={phoneError || phoneServerError}
+              />
+            </Box>
+            <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
+              <CustomInput
+                label="Data de Nascimento"
+                name="birthDate"
+                type="date"
+                required
+                value={formData.birthDate}
+                onChange={handleChange}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Box>
+            <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
+              <CustomInput
+                label="Nº da Federação"
+                name="federationId"
+                value={formData.federationId}
+                onChange={handleChange}
+              />
+            </Box>
+            <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
+              <CustomInput
+                label="Nº da Confederação"
+                name="confederationId"
+                value={formData.confederationId}
+                onChange={handleChange}
+              />
+            </Box>
+            <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
+              <CustomInput
+                label="Nº da Camisa"
+                name="shirtNumber"
+                type="number"
+                value={formData.shirtNumber}
+                onChange={handleChange}
+              />
+            </Box>
+          </Box>
+
+          <FormControl component="fieldset" variant="standard" sx={{ mt: 2 }}>
+            <FormLabel component="legend" sx={{ color: theme.palette.text.secondary }}>
+              Categorias
+            </FormLabel>
+            <FormGroup row>
+              {Array.isArray(availableCategories) && availableCategories.length > 0 ? (
+                availableCategories.map((category) => (
+                  <FormControlLabel
+                    key={category.id}
+                    control={
+                      <CustomCheckbox
+                        checked={formData.categories.includes(category.id)}
+                        onChange={() => handleCategoryChange(category.id)}
+                      />
+                    }
+                    label={
+                      <Typography color={theme.palette.text.secondary}>{category.name}</Typography>
+                    }
+                  />
+                ))
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  Nenhuma categoria disponível.
+                </Typography>
+              )}
+            </FormGroup>
+          </FormControl>
+
+          <Box sx={{ mt: 2 }}>
+            <CustomButton
+              fullWidth
+              type="submit"
+              variant="contained"
+              disabled={isLoading || !!phoneError || !!phoneServerError}
+            >
+              {isLoading ? <CircularProgress size={24} /> : 'Salvar'}
+            </CustomButton>
+          </Box>
         </Box>
-      </Box>
+      )}
     </Box>
   );
 };

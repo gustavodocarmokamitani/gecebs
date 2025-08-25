@@ -9,8 +9,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Checkbox,
-  FormControlLabel,
+  CircularProgress,
 } from '@mui/material';
 import CustomInput from '../components/common/CustomInput';
 import CustomButton from '../components/common/CustomButton';
@@ -19,41 +18,9 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useTheme } from '@mui/material/styles';
 import { useResponsive } from '../hooks/useResponsive';
 import PaymentService from '../services/Payment';
-
-// Dados de exemplo para simular a tabela de categorias e eventos
-const categories = [
-  { id: 1, name: 'Adulto' },
-  { id: 2, name: 'Sub-23' },
-  // ... outras categorias
-];
-
-const eventos = [
-  { id: 1, name: 'Campeonato Nacional de Karatê' },
-  { id: 2, name: 'Treinamento de Verão' },
-  // ... outros eventos
-];
-
-// Dados de exemplo para simular edição (se precisar)
-const payments = [
-  {
-    id: 1,
-    name: 'Taxa de Inscrição - Campeonato',
-    value: 150.0,
-    dueDate: '2025-10-31T00:00:00.000Z',
-    pixKey: '123.456.789-01',
-    categoryId: 1,
-    eventId: 1, // Exemplo de pagamento associado a um evento
-  },
-  {
-    id: 2,
-    name: 'Mensalidade Outubro',
-    value: 100.0,
-    dueDate: '2025-10-05T00:00:00.000Z',
-    pixKey: '987.654.321-01',
-    categoryId: 2,
-    eventId: null, // Exemplo de pagamento sem evento associado
-  },
-];
+import CategoryService from '../services/Category';
+import EventService from '../services/Event';
+import { toast } from 'react-toastify';
 
 const PaymentForm = () => {
   const { paymentId } = useParams();
@@ -63,8 +30,6 @@ const PaymentForm = () => {
   const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
 
   const isEditing = !!paymentId;
-  const paymentToEdit = isEditing ? payments.find((p) => p.id === parseInt(paymentId)) : null;
-
   const [formData, setFormData] = useState({
     name: '',
     dueDate: '',
@@ -73,28 +38,77 @@ const PaymentForm = () => {
     eventId: '',
   });
 
+  const [categories, setCategories] = useState([]);
+  const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDataLoading, setIsDataLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (isEditing && paymentToEdit) {
-      setFormData({
-        name: paymentToEdit.name,
-        dueDate: paymentToEdit.dueDate.split('T')[0],
-        pixKey: paymentToEdit.pixKey,
-        categoryId: paymentToEdit.categoryId,
-        eventId: paymentToEdit.eventId || '',
-      });
-    } else {
-      setFormData({
-        name: '',
-        dueDate: '',
-        pixKey: '',
-        categoryId: '',
-        eventId: '',
-      });
+  // Função unificada para buscar dados iniciais (categorias e eventos)
+  const fetchInitialData = async () => {
+    setIsDataLoading(true);
+    try {
+      const [fetchedCategories, fetchedEvents] = await Promise.all([
+        CategoryService.getAll(),
+        EventService.listAllTeamEvents(),
+      ]);
+      setCategories(fetchedCategories);
+      setEvents(fetchedEvents);
+
+      if (isEditing) {
+        // Agora, a resposta da API terá o objeto `event`
+        const paymentToEdit = await PaymentService.getById(paymentId);
+        console.log(paymentToEdit);
+
+        if (paymentToEdit) {
+          setFormData({
+            name: paymentToEdit.name,
+            dueDate: new Date(paymentToEdit.dueDate).toISOString().split('T')[0],
+            pixKey: paymentToEdit.pixKey,
+            categoryId: paymentToEdit.categoryId,
+            // ATUALIZAÇÃO AQUI: Apenas use o eventId diretamente
+            eventId: paymentToEdit.eventId || '',
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao buscar dados iniciais:', err);
+      toast.error('Erro ao carregar as opções de categorias e eventos.');
+      setError('Erro ao carregar dados. Tente recarregar a página.');
+    } finally {
+      setIsDataLoading(false);
     }
-  }, [paymentId, isEditing, paymentToEdit]);
+  };
+
+  useEffect(() => {
+    fetchInitialData();
+  }, [isEditing, paymentId]);
+
+  // NOVO useEffect para preencher o nome do pagamento com o nome do evento
+  useEffect(() => {
+    const selectedEvent = events.find((event) => String(event.id) === String(formData.eventId));
+
+    // Apenas preenche o nome se um evento for selecionado e se o formulário NÃO estiver em edição
+    // ou se o nome atual for diferente do nome do evento. Isso evita sobrescrever um nome editado.
+    if (selectedEvent && (!isEditing || selectedEvent.name !== formData.name)) {
+      setFormData((prev) => ({
+        ...prev,
+        name: selectedEvent.name,
+      }));
+    } else if (!formData.eventId) {
+      // Se nenhum evento for selecionado, permite que o nome seja editável
+      // Apenas limpa o nome se ele for o nome de um evento antigo
+      const eventNameFromId = events.find(
+        (event) => String(event.id) === String(formData.eventId)
+      )?.name;
+      if (formData.name === eventNameFromId) {
+        setFormData((prev) => ({
+          ...prev,
+          name: '',
+        }));
+      }
+    }
+  }, [formData.eventId, events, isEditing]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -106,38 +120,48 @@ const PaymentForm = () => {
     setIsLoading(true);
     setError(null);
 
-    // O valor não é mais enviado do frontend, ele será calculado no backend
     const dataToSubmit = {
       name: formData.name,
       dueDate: formData.dueDate,
       pixKey: formData.pixKey,
       categoryId: formData.categoryId,
-      eventId: formData.eventId ? parseInt(formData.eventId) : null,
+      eventId: formData.eventId || null,
     };
 
     try {
       if (isEditing) {
-        console.log('Dados para edição:', dataToSubmit);
+        await PaymentService.update(paymentId, dataToSubmit);
+        toast.success('Pagamento atualizado com sucesso!');
+        navigate(`/payment/items/${paymentId}`);
       } else {
         const newPayment = await PaymentService.create(dataToSubmit);
-        console.log('Pagamento criado com sucesso!');
-        // Navega para a página de itens, passando o ID do novo pagamento
+        toast.success('Pagamento criado com sucesso! Agora adicione os itens.');
         navigate(`/payment/items/${newPayment.id}`);
       }
     } catch (err) {
-      console.error('Erro:', err);
-      setError('Erro ao salvar o pagamento. Tente novamente.');
+      console.error('Erro ao salvar pagamento:', err);
+      toast.error(`Erro ao salvar o pagamento: ${err.response?.data?.message || err.message}`);
+      setError(`Erro: ${err.response?.data?.message || err.message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const title = isEditing ? 'Editar Despesas' : 'Adicionar Despesas';
-  const buttonText = isLoading ? 'Salvando...' : 'Avançar';
+  const title = isEditing ? 'Editar Despesa' : 'Adicionar Despesa';
+  const buttonText = isLoading ? 'Salvando...' : isEditing ? 'Salvar' : 'Avançar';
+  const isNameDisabled = !!formData.eventId && !isEditing;
+
+  if (isDataLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   const eventOptions = [
     { value: '', label: 'Nenhum' },
-    ...eventos.map((e) => ({ value: e.id, label: e.name })),
+    ...events.map((e) => ({ value: e.id, label: e.name })),
   ];
 
   return (
@@ -200,6 +224,16 @@ const PaymentForm = () => {
         }}
       >
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+          {/* Campo Evento Associado - MOVIDO PARA O TOPO */}
+          <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
+            <CustomSelect
+              label="Evento Associado"
+              name="eventId"
+              value={formData.eventId}
+              onChange={handleChange}
+              options={eventOptions}
+            />
+          </Box>
           {/* Nome do Pagamento */}
           <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
             <CustomInput
@@ -208,10 +242,9 @@ const PaymentForm = () => {
               value={formData.name}
               onChange={handleChange}
               required
+              disabled={isNameDisabled}
             />
           </Box>
-          {/* O campo de valor foi removido */}
-
           {/* Data de Vencimento */}
           <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
             <CustomInput
@@ -252,16 +285,6 @@ const PaymentForm = () => {
                 ))}
               </Select>
             </FormControl>
-          </Box>
-          {/* Novo campo: Evento */}
-          <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
-            <CustomSelect
-              label="Evento Associado"
-              name="eventId"
-              value={formData.eventId}
-              onChange={handleChange}
-              options={eventOptions}
-            />
           </Box>
         </Box>
         <Box sx={{ mt: 2 }}>

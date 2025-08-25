@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+// src/components/card/PaymentCard.jsx
+
+import React, { useState, useEffect } from 'react'; // Importe o useEffect
 import {
   Card,
   CardContent,
@@ -10,6 +12,7 @@ import {
   ListItemText,
   Collapse,
   Divider,
+  CircularProgress, // Importe o CircularProgress
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTheme } from '@mui/material/styles';
@@ -18,9 +21,13 @@ import { useResponsive } from '../../hooks/useResponsive';
 import CustomButton from '../common/CustomButton';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
+import PaymentService from '../../services/Payment'; // Importe o serviço de pagamento
+import { toast } from 'react-toastify';
 
 const PaymentCard = ({ payment }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [athletes, setAthletes] = useState([]); // Novo estado para atletas
+  const [isLoading, setIsLoading] = useState(false); // Novo estado para carregamento
   const theme = useTheme();
   const navigate = useNavigate();
 
@@ -36,8 +43,30 @@ const PaymentCard = ({ payment }) => {
   };
 
   const handleEditClick = () => {
-    navigate(`/payment/edit/${event.id}`);
+    navigate(`/payment/edit/${payment.id}`);
   };
+
+  // Use useEffect para buscar os atletas quando o card for expandido
+  useEffect(() => {
+    if (isExpanded && payment?.id) {
+      const fetchAthletes = async () => {
+        setIsLoading(true);
+        try {
+          // Chama a nova rota da API
+          const fetchedAthletes = await PaymentService.getAthletesWithPaymentStatus(payment.id);
+
+          setAthletes(fetchedAthletes);
+        } catch (error) {
+          console.error('Erro ao buscar atletas do pagamento:', error);
+          toast.error('Erro ao carregar a lista de atletas.');
+          setAthletes([]);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchAthletes();
+    }
+  }, [isExpanded, payment?.id]);
 
   return (
     <Card
@@ -148,6 +177,7 @@ const PaymentCard = ({ payment }) => {
                 ))}
               </List>
             )}
+
             <Typography
               variant="subtitle3"
               fontWeight={600}
@@ -157,14 +187,18 @@ const PaymentCard = ({ payment }) => {
                 color: theme.palette.text.secondary,
               }}
             >
-              Pagamentos Confirmados
+              Status de Pagamento
             </Typography>
             <Divider sx={{ my: 1, borderColor: theme.palette.divider }} />
-            {payment.paidBy.length > 0 && (
+            {isLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                <CircularProgress size={24} />
+              </Box>
+            ) : Array.isArray(athletes) && athletes.length > 0 ? (
               <List dense>
-                {payment.paidBy.map((user, index) => (
+                {athletes.map((athlete, index) => (
                   <ListItem
-                    key={user.userId}
+                    key={athlete.userId}
                     sx={{
                       width: '250px',
                       textAlign: 'center',
@@ -179,27 +213,27 @@ const PaymentCard = ({ payment }) => {
                     }}
                   >
                     <ListItemText
-                      primary={user.user.firstName + ' ' + user.user.lastName}
-                      secondary={
-                        user.paidAt
-                          ? `Pago em: ${new Intl.DateTimeFormat('pt-BR').format(new Date(user.paidAt))}`
-                          : 'Aguardando pagamento'
-                      }
+                      primary={`${athlete.firstName} ${athlete.lastName}`}
+                      secondary={athlete.status ? 'Pago' : 'Pendente'}
                     />
                     <Box
                       sx={{
-                        color: user.paidAt
+                        color: athlete.status
                           ? theme.palette.success.main
                           : theme.palette.warning.main,
                         display: 'flex',
                         alignItems: 'center',
                       }}
                     >
-                      {user.paidAt ? <CheckCircleOutlineIcon /> : <PanoramaFishEyeIcon />}
+                      {athlete.status ? <CheckCircleOutlineIcon /> : <PanoramaFishEyeIcon />}
                     </Box>
                   </ListItem>
                 ))}
               </List>
+            ) : (
+              <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                Nenhum atleta nesta categoria.
+              </Typography>
             )}
           </CardContent>
 

@@ -5,73 +5,9 @@ import { authenticateToken } from '../../middleware/auth.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
-router.get('/athletes/:id', authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const eventId = parseInt(id);
-    const { teamId } = req.user;
-
-    // 1. Encontrar o evento para pegar o categoryId
-    const event = await prisma.event.findUnique({
-      where: { id: eventId },
-      select: { categoryId: true },
-    });
-
-    if (!event) {
-      return res.status(404).json({ message: 'Evento não encontrado.' });
-    }
-
-    // 2. Encontrar todos os atletas do time e da categoria do evento
-    // Mudar a query principal para o modelo 'Athlete'
-    const athletes = await prisma.athlete.findMany({
-      where: {
-        user: {
-          teamId: teamId,
-          role: 'ATHLETE',
-        },
-        categories: {
-          some: {
-            categoryId: event.categoryId,
-          },
-        },
-      },
-      select: {
-        userId: true,
-        firstName: true,
-        lastName: true,
-        user: {
-          select: {
-            // Seleciona a confirmação do usuário para o evento específico
-            confirmations: {
-              where: {
-                confirmation: {
-                  eventId: eventId,
-                },
-              },
-              select: {
-                status: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    // Mapeia os dados para um formato mais fácil de usar no frontend
-    const result = athletes.map((athlete) => ({
-      userId: athlete.userId,
-      firstName: athlete.firstName,
-      lastName: athlete.lastName,
-      // Se houver uma confirmação, pega o status, senão assume false (não confirmado)
-      status: athlete.user.confirmations[0]?.status || false,
-    }));
-
-    res.status(200).json(result);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Erro ao buscar atletas do evento.' });
-  }
-});
+// ======================================================
+// ⚠️ Rotas GET (mais específicas primeiro)
+// ======================================================
 
 /**
  * GET /event/list-all-team-events
@@ -81,7 +17,6 @@ router.get('/list-all-team-events', authenticateToken, async (req, res) => {
   try {
     const { teamId, role } = req.user;
 
-    // Apenas managers e equipes podem ver todos os eventos do time
     if (role !== 'MANAGER' && role !== 'TEAM') {
       return res.status(403).json({
         message: 'Acesso negado. Apenas managers e equipes podem listar todos os eventos do time.',
@@ -96,7 +31,7 @@ router.get('/list-all-team-events', authenticateToken, async (req, res) => {
         date: 'desc',
       },
       include: {
-        category: true, // Adiciona esta linha para incluir os dados da categoria
+        category: true,
       },
     });
 
@@ -108,14 +43,13 @@ router.get('/list-all-team-events', authenticateToken, async (req, res) => {
 });
 
 /**
- * GET /event/list-my-events
+ * GET /event/list-all-events-athletics
  * Lista todos os eventos aos quais o atleta está associado.
  */
 router.get('/list-all-events-athletics', authenticateToken, async (req, res) => {
   try {
     const { userId, role } = req.user;
 
-    // Apenas atletas podem listar seus próprios eventos
     if (role !== 'ATHLETE') {
       return res
         .status(403)
@@ -142,7 +76,6 @@ router.get('/list-all-events-athletics', authenticateToken, async (req, res) => 
       },
     });
 
-    // Extrai apenas os dados do evento para a resposta
     const myEvents = myConfirmations.map((conf) => ({
       ...conf.confirmation.event,
       confirmedAt: conf.confirmedAt,
@@ -156,6 +89,117 @@ router.get('/list-all-events-athletics', authenticateToken, async (req, res) => 
 });
 
 /**
+ * GET /event/get-by-id/:id
+ * Busca um evento específico por ID.
+ */
+router.get('/get-by-id/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { teamId, role } = req.user;
+
+    if (role !== 'MANAGER' && role !== 'TEAM') {
+      return res.status(403).json({
+        message: 'Acesso negado. Apenas managers e equipes podem acessar eventos do time.',
+      });
+    }
+
+    const eventId = parseInt(id);
+
+    const event = await prisma.event.findUnique({
+      where: {
+        id: eventId,
+        teamId: teamId,
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    if (!event) {
+      return res
+        .status(404)
+        .json({ message: 'Evento não encontrado ou não pertence ao seu time.' });
+    }
+
+    res.status(200).json(event);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao buscar o evento.' });
+  }
+});
+
+/**
+ * GET /event/athletes/:id
+ * Retorna os atletas de um time para um evento específico.
+ * Adicionei um `/event` no caminho para evitar conflito com outras rotas de atletas.
+ */
+router.get('/athletes/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const eventId = parseInt(id);
+    const { teamId } = req.user;
+
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { categoryId: true },
+    });
+
+    if (!event) {
+      return res.status(404).json({ message: 'Evento não encontrado.' });
+    }
+
+    const athletes = await prisma.athlete.findMany({
+      where: {
+        user: {
+          teamId: teamId,
+          role: 'ATHLETE',
+        },
+        categories: {
+          some: {
+            categoryId: event.categoryId,
+          },
+        },
+      },
+      select: {
+        userId: true,
+        firstName: true,
+        lastName: true,
+        user: {
+          select: {
+            confirmations: {
+              where: {
+                confirmation: {
+                  eventId: eventId,
+                },
+              },
+              select: {
+                status: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const result = athletes.map((athlete) => ({
+      userId: athlete.userId,
+      firstName: athlete.firstName,
+      lastName: athlete.lastName,
+      status: athlete.user.confirmations[0]?.status ?? false,
+    }));
+
+    res.status(200).json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao buscar atletas do evento.' });
+  }
+});
+
+// ======================================================
+// ⚠️ Rotas de Modificação
+// ======================================================
+
+/**
  * POST /event/create
  * Cria um novo evento e uma solicitação de confirmação para todos os atletas.
  */
@@ -164,14 +208,12 @@ router.post('/create', authenticateToken, async (req, res) => {
     const { name, description, date, location, type, categoryId } = req.body;
     const { teamId, role } = req.user;
 
-    // Apenas managers e equipes podem criar eventos
     if (role !== 'MANAGER' && role !== 'TEAM') {
       return res
         .status(403)
         .json({ message: 'Acesso negado. Apenas managers podem criar eventos.' });
     }
 
-    // Passo 1: Criar o evento na tabela Event
     const newEvent = await prisma.event.create({
       data: {
         name,
@@ -184,14 +226,12 @@ router.post('/create', authenticateToken, async (req, res) => {
       },
     });
 
-    // Passo 2: Criar a solicitação de confirmação para o evento
     const newConfirmation = await prisma.confirmation.create({
       data: {
         eventId: newEvent.id,
       },
     });
 
-    // Passo 3: Encontrar todos os atletas do time
     const athletes = await prisma.user.findMany({
       where: {
         teamId: teamId,
@@ -199,7 +239,6 @@ router.post('/create', authenticateToken, async (req, res) => {
       },
     });
 
-    // Passo 4: Criar uma associação na tabela ConfirmationUser para cada atleta
     const confirmationUsersData = athletes.map((athlete) => ({
       confirmationId: newConfirmation.id,
       userId: athlete.id,
@@ -222,47 +261,6 @@ router.post('/create', authenticateToken, async (req, res) => {
 });
 
 /**
- * GET /event/get-by-id/:id
- * Busca um evento específico por ID.
- */
-router.get('/get-by-id/:id', authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { teamId, role } = req.user;
-
-    // Apenas managers e equipes podem acessar eventos do próprio time
-    if (role !== 'MANAGER' && role !== 'TEAM') {
-      return res.status(403).json({
-        message: 'Acesso negado. Apenas managers e equipes podem acessar eventos do time.',
-      });
-    }
-
-    const eventId = parseInt(id);
-
-    const event = await prisma.event.findUnique({
-      where: {
-        id: eventId,
-        teamId: teamId, // Garante que o evento pertence ao time do usuário
-      },
-      include: {
-        category: true,
-      },
-    });
-
-    if (!event) {
-      return res
-        .status(404)
-        .json({ message: 'Evento não encontrado ou não pertence ao seu time.' });
-    }
-
-    res.status(200).json(event);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Erro ao buscar o evento.' });
-  }
-});
-
-/**
  * PATCH /event/update/:id
  * Atualiza os dados de um evento existente.
  */
@@ -272,7 +270,6 @@ router.patch('/update/:id', authenticateToken, async (req, res) => {
     const { name, description, date, location, type } = req.body;
     const { teamId, role } = req.user;
 
-    // Apenas managers e equipes podem atualizar eventos
     if (role !== 'MANAGER' && role !== 'TEAM') {
       return res
         .status(403)
@@ -281,7 +278,6 @@ router.patch('/update/:id', authenticateToken, async (req, res) => {
 
     const eventId = parseInt(id);
 
-    // Encontra o evento e garante que ele pertence ao time do manager
     const existingEvent = await prisma.event.findUnique({
       where: {
         id: eventId,
@@ -294,7 +290,6 @@ router.patch('/update/:id', authenticateToken, async (req, res) => {
         .json({ message: 'Evento não encontrado ou não pertence ao seu time.' });
     }
 
-    // Atualiza apenas os campos que foram enviados na requisição
     const updatedEvent = await prisma.event.update({
       where: {
         id: eventId,
@@ -327,7 +322,6 @@ router.delete('/delete/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const { teamId, role } = req.user;
 
-    // Apenas managers e equipes podem deletar eventos
     if (role !== 'MANAGER' && role !== 'TEAM') {
       return res
         .status(403)
@@ -336,7 +330,6 @@ router.delete('/delete/:id', authenticateToken, async (req, res) => {
 
     const eventId = parseInt(id);
 
-    // Encontra o evento e garante que ele pertence ao time do manager
     const existingEvent = await prisma.event.findUnique({
       where: {
         id: eventId,
@@ -349,9 +342,7 @@ router.delete('/delete/:id', authenticateToken, async (req, res) => {
         .json({ message: 'Evento não encontrado ou não pertence ao seu time.' });
     }
 
-    // Inicia uma transação para garantir que tudo seja deletado
     await prisma.$transaction(async (prisma) => {
-      // 1. Deleta as associações na tabela ConfirmationUser
       await prisma.confirmationUser.deleteMany({
         where: {
           confirmation: {
@@ -360,14 +351,12 @@ router.delete('/delete/:id', authenticateToken, async (req, res) => {
         },
       });
 
-      // 2. Deleta a solicitação de confirmação
       await prisma.confirmation.deleteMany({
         where: {
           eventId: eventId,
         },
       });
 
-      // 3. Deleta o evento
       await prisma.event.delete({
         where: {
           id: eventId,
@@ -395,7 +384,6 @@ router.patch('/toggle-confirmation/:confirmationId', authenticateToken, async (r
 
     const parsedConfirmationId = parseInt(confirmationId);
 
-    // 1. Procura a entrada na tabela de junção ConfirmationUser
     const existingConfirmation = await prisma.confirmationUser.findUnique({
       where: {
         confirmationId_userId: {
@@ -405,18 +393,15 @@ router.patch('/toggle-confirmation/:confirmationId', authenticateToken, async (r
       },
     });
 
-    // 2. Se a confirmação não existir, retorna um erro
     if (!existingConfirmation) {
       return res
         .status(404)
         .json({ message: 'Confirmação não encontrada ou não pertence a este usuário.' });
     }
 
-    // 3. Determina o novo status e a data
     const newStatus = !existingConfirmation.status;
     const newConfirmedAt = newStatus ? new Date() : null;
 
-    // 4. Atualiza a entrada no banco de dados com o novo status
     const updatedConfirmation = await prisma.confirmationUser.update({
       where: {
         confirmationId_userId: {
@@ -430,7 +415,6 @@ router.patch('/toggle-confirmation/:confirmationId', authenticateToken, async (r
       },
     });
 
-    // 5. Retorna uma mensagem de acordo com o novo status
     const message = newStatus
       ? 'Presença confirmada com sucesso.'
       : 'Presença desconfirmada com sucesso.';

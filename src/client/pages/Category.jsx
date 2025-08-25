@@ -1,5 +1,3 @@
-// src/pages/Category.jsx
-
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -9,9 +7,13 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
-import { Link, useNavigate } from 'react-router-dom';
-// 👈 Importando o serviço real
+import { useNavigate } from 'react-router-dom';
 import CategoryService from '../services/Category';
 import { toast } from 'react-toastify';
 import CustomButton from '../components/common/CustomButton';
@@ -26,8 +28,12 @@ const Category = () => {
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expanded, setExpanded] = useState('all-categories');
-
   const [error, setError] = useState(null);
+
+  // Estados para o modal de confirmação
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [categoryIdToDelete, setCategoryIdToDelete] = useState(null);
+
   const navigate = useNavigate();
   const theme = useTheme();
   const deviceType = useResponsive();
@@ -37,7 +43,6 @@ const Category = () => {
     setExpanded(isExpanded ? panel : false);
   };
 
-  // 1. Função de busca que agora usa a API
   const fetchCategories = async () => {
     setIsLoading(true);
     setError(null);
@@ -61,11 +66,23 @@ const Category = () => {
     navigate(`/category/edit/${id}`);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir esta categoria?')) {
+  // Funções para controlar o modal de confirmação
+  const handleOpenDeleteDialog = (id) => {
+    setCategoryIdToDelete(id);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setOpenDeleteDialog(false);
+    setCategoryIdToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    handleCloseDeleteDialog(); // Fecha o modal
+    if (categoryIdToDelete) {
       try {
-        await CategoryService.remove(id);
-        fetchCategories();
+        await CategoryService.remove(categoryIdToDelete);
+        fetchCategories(); // Recarrega a lista de categorias
         toast.success('Categoria excluída com sucesso!');
       } catch (err) {
         console.error('Erro ao excluir categoria:', err);
@@ -163,13 +180,41 @@ const Category = () => {
                   key={category.id}
                   category={category}
                   onEdit={handleEdit}
-                  onDelete={handleDelete}
+                  onDelete={() => handleOpenDeleteDialog(category.id)}
                 />
               ))}
             </Box>
           </AccordionDetails>
         </Accordion>
       )}
+
+      {/* Modal de confirmação de exclusão */}
+      <Dialog
+        open={openDeleteDialog}
+        onClose={handleCloseDeleteDialog}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{'Atenção: Ação Irreversível'}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Ao excluir esta categoria, você também irá deletar todos os dados associados a ela:
+            **associações de managers e atletas**, além de todos os **eventos e pagamentos**
+            vinculados.
+            <br />
+            <br />
+            Esta ação não pode ser desfeita. Tem certeza que deseja continuar?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <CustomButton onClick={handleCloseDeleteDialog} variant="contained">
+            Cancelar
+          </CustomButton>
+          <CustomButton onClick={handleConfirmDelete} variant="contained" color="error" autoFocus>
+            Confirmar Exclusão
+          </CustomButton>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

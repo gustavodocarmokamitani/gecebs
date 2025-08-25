@@ -12,14 +12,17 @@ import {
   FormControlLabel,
   Checkbox,
   Tooltip,
+  CircularProgress,
 } from '@mui/material';
 import CustomInput from '../components/common/CustomInput';
 import CustomButton from '../components/common/CustomButton';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 import { useTheme } from '@mui/material/styles';
 import { useResponsive } from '../hooks/useResponsive';
 import PaymentService from '../services/Payment';
+import { toast } from 'react-toastify';
 
 const PaymentItemForm = () => {
   const { paymentId } = useParams();
@@ -39,27 +42,26 @@ const PaymentItemForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState(null);
+  const [editingItem, setEditingItem] = useState(null);
 
-  // Estado para controlar a ação do botão de conclusão
-  const [isSavingAll, setIsSavingAll] = useState(false);
+  // Função para buscar o pagamento e seus itens
+  const fetchPaymentAndItems = async () => {
+    setIsLoading(true);
+    try {
+      const fetchedPayment = await PaymentService.getById(parseInt(paymentId));
+      setPayment(fetchedPayment);
+      setItems(fetchedPayment.items || []);
+      setError(null);
+    } catch (err) {
+      console.error('Erro ao buscar pagamento e itens:', err);
+      toast.error('Erro ao carregar os dados do pagamento.');
+      setError('Erro ao carregar os dados do pagamento.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchPaymentAndItems = async () => {
-      setIsLoading(true);
-      try {
-        // Assume que a rota de getById já retorna os itens
-        const fetchedPayment = await PaymentService.getById(parseInt(paymentId));
-        setPayment(fetchedPayment);
-        // Garante que items é sempre um array
-        setItems(fetchedPayment.items || []);
-        setError(null);
-      } catch (err) {
-        console.error('Erro ao buscar pagamento e itens:', err);
-        setError('Erro ao carregar os dados do pagamento.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
     if (paymentId) {
       fetchPaymentAndItems();
     }
@@ -73,7 +75,7 @@ const PaymentItemForm = () => {
     }));
   };
 
-  const handleAddItem = (e) => {
+  const handleAddItem = async (e) => {
     e.preventDefault();
     setIsAdding(true);
     setError(null);
@@ -85,44 +87,63 @@ const PaymentItemForm = () => {
       return;
     }
 
-    // Adiciona o item ao estado local, sem fazer requisição
-    const newItem = {
-      // O id temporário é para o React poder rastrear o item na lista
-      id: Date.now(),
-      name: formData.name,
-      value: itemValue,
-      quantityEnabled: formData.quantityEnabled,
-    };
-    setItems((prevItems) => [...prevItems, newItem]);
-    setFormData({ name: '', value: '', quantityEnabled: false }); // Limpa o formulário
-
-    setIsAdding(false);
-  };
-
-  const handleDeleteItem = (itemId) => {
-    // Apenas remove do estado local
-    setItems((prevItems) => prevItems.filter((item) => item.id !== itemId));
-    // Observação: para um app completo, você precisaria de uma rota DELETE no backend
-    // e chamar o serviço aqui para sincronizar.
-  };
-
-  const handleSaveAndFinish = async () => {
-    setIsSavingAll(true);
-    setError(null);
     try {
-      // Mapeia os itens do estado e envia um POST para cada um
-      const savePromises = items.map((item) => PaymentService.addItem(parseInt(paymentId), item));
+      const dataToSubmit = {
+        name: formData.name,
+        value: itemValue,
+        quantityEnabled: formData.quantityEnabled,
+      };
 
-      // Usa Promise.all para executar todas as requisições em paralelo
-      await Promise.all(savePromises);
+      if (editingItem) {
+        // Lógica de EDIÇÃO
+        await PaymentService.updateItem(editingItem.id, dataToSubmit);
+        toast.success('Item atualizado com sucesso!');
+      } else {
+        // Lógica de ADIÇÃO
+        await PaymentService.addItem(parseInt(paymentId), dataToSubmit);
+        toast.success('Item adicionado com sucesso!');
+      }
 
-      navigate('/payment');
+      // Após a operação de sucesso, recarrega todos os dados do pagamento
+      // Isso é crucial para que o valor total seja atualizado na tela
+      await fetchPaymentAndItems();
+
+      setFormData({ name: '', value: '', quantityEnabled: false });
+      setEditingItem(null); // Limpa o estado de edição
     } catch (err) {
-      console.error('Erro ao salvar os itens:', err);
-      setError('Erro ao salvar os itens. Verifique sua conexão.');
+      console.error('Erro ao salvar o item:', err);
+      toast.error(`Erro ao salvar o item: ${err.response?.data?.message || err.message}`);
+      setError(`Erro: ${err.response?.data?.message || err.message}`);
     } finally {
-      setIsSavingAll(false);
+      setIsAdding(false);
     }
+  };
+
+  const handleEditItem = (item) => {
+    setEditingItem(item);
+    setFormData({
+      name: item.name,
+      value: item.value,
+      quantityEnabled: item.quantityEnabled,
+    });
+  };
+
+  const handleDeleteItem = async (itemId) => {
+    try {
+      await PaymentService.deleteItem(itemId);
+      toast.success('Item removido com sucesso!');
+
+      // Após a exclusão, recarrega todos os dados do pagamento para sincronizar o total
+      await fetchPaymentAndItems();
+    } catch (err) {
+      console.error('Erro ao deletar o item:', err);
+      toast.error('Erro ao remover o item. Tente novamente.');
+      setError(`Erro: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
+  const handleSaveAndFinish = () => {
+    navigate('/payment');
   };
 
   const totalValue = items
@@ -130,7 +151,11 @@ const PaymentItemForm = () => {
     .toFixed(2);
 
   if (isLoading) {
-    return <Typography>Carregando...</Typography>;
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
@@ -142,20 +167,25 @@ const PaymentItemForm = () => {
         color="textSecondary"
         sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
       >
-        <Box component="span" color="textSecondary" sx={{ fontWeight: 100 }}>
+        <Box
+          component="span"
+          color="textSecondary"
+          sx={{ fontWeight: 100 }}
+          onClick={() => navigate('/payment')}
+        >
           Visão Geral
         </Box>
         <span>
           <ChevronRightIcon sx={{ mt: 1.5 }} />
         </span>
         <Box component="span" color="primary.main">
-          {payment ? `Adicionar Itens` : 'Carregando...'}
+          {payment ? `Adicionar Itens: ${payment.name}` : 'Carregando...'}
         </Box>
       </Typography>
       <Divider sx={{ my: 2, borderColor: theme.palette.divider }} />
 
       <Typography variant="h6" color="textSecondary" sx={{ mb: 2 }}>
-        Adicionar Novo Item
+        {editingItem ? 'Editar Item' : 'Adicionar Novo Item'}
       </Typography>
       <Box
         component="form"
@@ -190,8 +220,19 @@ const PaymentItemForm = () => {
           sx={{ color: theme.palette.text.secondary }}
         />
         <CustomButton type="submit" variant="contained" disabled={isAdding}>
-          {isAdding ? 'Adicionando...' : 'Adicionar Item'}
+          {isAdding ? 'Salvando...' : editingItem ? 'Salvar Edição' : 'Adicionar Item'}
         </CustomButton>
+        {editingItem && (
+          <CustomButton
+            variant="outlined"
+            onClick={() => {
+              setEditingItem(null);
+              setFormData({ name: '', value: '', quantityEnabled: false });
+            }}
+          >
+            Cancelar Edição
+          </CustomButton>
+        )}
       </Box>
 
       <Typography variant="h6" color="textSecondary" sx={{ mb: 2 }}>
@@ -217,6 +258,16 @@ const PaymentItemForm = () => {
                   primary={item.name}
                   secondary={`R$ ${item.value?.toFixed(2) || '0.00'} - ${item.quantityEnabled ? 'Permite Qtd.' : 'Qtd. única'}`}
                 />
+                <Tooltip title="Editar Item">
+                  <IconButton
+                    edge="end"
+                    aria-label="edit"
+                    onClick={() => handleEditItem(item)}
+                    sx={{ mr: 1 }}
+                  >
+                    <EditIcon />
+                  </IconButton>
+                </Tooltip>
                 <Tooltip title="Deletar Item">
                   <IconButton
                     edge="end"
@@ -237,9 +288,9 @@ const PaymentItemForm = () => {
           fullWidth
           variant="contained"
           onClick={handleSaveAndFinish}
-          disabled={isSavingAll}
+          disabled={!items.length}
         >
-          {isSavingAll ? 'Salvando...' : 'Concluir'}
+          Concluir
         </CustomButton>
       </Box>
     </Box>

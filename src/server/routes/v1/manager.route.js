@@ -245,4 +245,77 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * PATCH /update/:id
+ * Atualiza os dados de um manager e suas categorias.
+ */
+router.patch('/update/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { teamId, role } = req.user;
+    const { firstName, lastName, phone, categories } = req.body; // <-- Incluindo categories
+
+    if (role !== 'TEAM') {
+      return res.status(403).json({ message: 'Acesso negado.' });
+    }
+
+    const manager = await prisma.manager.findUnique({
+      where: { id: Number(id) },
+      include: { user: true },
+    });
+
+    if (!manager || manager.user.teamId !== teamId) {
+      return res.status(404).json({ message: 'Manager não encontrado no seu time.' });
+    }
+
+    await prisma.$transaction(async (prisma) => {
+      // 1. Atualiza os dados básicos do manager
+      await prisma.manager.update({
+        where: { id: Number(id) },
+        data: {
+          firstName,
+          lastName,
+          phone,
+        },
+      });
+
+      // 2. Atualiza as categorias (sincroniza as associações)
+      if (categories) {
+        // Deleta as associações existentes
+        await prisma.managerCategory.deleteMany({
+          where: { managerId: Number(id) },
+        });
+
+        // Cria as novas associações
+        await prisma.managerCategory.createMany({
+          data: categories.map((categoryId) => ({
+            managerId: Number(id),
+            categoryId,
+          })),
+        });
+      }
+    });
+
+    // Busca o manager atualizado para retornar na resposta
+    const updatedManager = await prisma.manager.findUnique({
+      where: { id: Number(id) },
+      include: {
+        categories: {
+          include: {
+            category: true,
+          },
+        },
+      },
+    });
+
+    res.status(200).json({
+      message: 'Manager atualizado com sucesso.',
+      manager: updatedManager,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao atualizar o manager.' });
+  }
+});
+
 export default router;
