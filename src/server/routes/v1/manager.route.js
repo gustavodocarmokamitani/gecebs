@@ -17,15 +17,15 @@ router.post('/create-manager', authenticateToken, async (req, res) => {
     const { teamId, role } = req.user;
 
     if (role !== 'TEAM') {
-      return res
-        .status(403)
-        .json({ message: 'Acesso negado. Apenas o proprietário da equipe pode criar um manager.' });
+      return res.status(403).json({
+        message: 'Acesso negado. Apenas o proprietário da equipe pode criar um gerente.',
+      });
     }
 
     if (!categories || !Array.isArray(categories) || categories.length === 0) {
       return res
         .status(400)
-        .json({ message: 'É obrigatório selecionar pelo menos uma categoria para o manager.' });
+        .json({ message: 'É obrigatório selecionar pelo menos uma categoria para o gerente.' });
     }
 
     const team = await prisma.team.findUnique({
@@ -77,12 +77,12 @@ router.post('/create-manager', authenticateToken, async (req, res) => {
     });
 
     res.status(201).json({
-      message: 'Manager criado com sucesso. Senha temporária: ' + genericPassword,
+      message: 'Gerente criado com sucesso. Senha temporária: ' + genericPassword,
       manager: newManager,
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Erro ao criar o manager.' });
+    res.status(500).json({ message: 'Erro ao criar o gerente.' });
   }
 });
 
@@ -98,7 +98,9 @@ router.patch('/update-manager/:id', authenticateToken, async (req, res) => {
 
     // Apenas o proprietário do time 'TEAM' pode atualizar managers
     if (role !== 'TEAM') {
-      return res.status(403).json({ message: 'Acesso negado.' });
+      return res.status(403).json({
+        message: 'Acesso negado. Apenas o proprietário da equipe pode editar um gerente.',
+      });
     }
 
     const manager = await prisma.manager.findUnique({
@@ -107,7 +109,7 @@ router.patch('/update-manager/:id', authenticateToken, async (req, res) => {
     });
 
     if (!manager || manager.user.teamId !== teamId) {
-      return res.status(404).json({ message: 'Manager não encontrado no seu time.' });
+      return res.status(404).json({ message: 'Gerente não encontrado no seu time.' });
     }
 
     const updatedManager = await prisma.manager.update({
@@ -120,12 +122,12 @@ router.patch('/update-manager/:id', authenticateToken, async (req, res) => {
     });
 
     res.status(200).json({
-      message: 'Manager atualizado com sucesso.',
+      message: 'Gerente atualizado com sucesso.',
       manager: updatedManager,
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Erro ao atualizar o manager.' });
+    res.status(500).json({ message: 'Erro ao atualizar o gerente.' });
   }
 });
 
@@ -140,7 +142,9 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     // Apenas o proprietário do time 'TEAM' pode excluir managers
     if (role !== 'TEAM') {
-      return res.status(403).json({ message: 'Acesso negado.' });
+      return res.status(403).json({
+        message: 'Acesso negado. Apenas o proprietário da equipe pode apagar os gerentes.',
+      });
     }
 
     const manager = await prisma.manager.findUnique({
@@ -149,7 +153,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     });
 
     if (!manager || manager.user.teamId !== teamId) {
-      return res.status(404).json({ message: 'Manager não encontrado no seu time.' });
+      return res.status(404).json({ message: 'Gerente não encontrado no seu time.' });
     }
 
     await prisma.$transaction(async (prisma) => {
@@ -162,10 +166,10 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       });
     });
 
-    res.status(200).json({ message: 'Manager e usuário associado excluídos com sucesso.' });
+    res.status(200).json({ message: 'Gerente e usuário associado excluídos com sucesso.' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Erro ao excluir o manager.' });
+    res.status(500).json({ message: 'Erro ao excluir o gerente.' });
   }
 });
 
@@ -181,7 +185,7 @@ router.get('/list-all', authenticateToken, async (req, res) => {
     if (role !== 'MANAGER' && role !== 'TEAM') {
       return res
         .status(403)
-        .json({ message: 'Acesso negado. Você não tem permissão para listar managers.' });
+        .json({ message: 'Acesso negado. Você não tem permissão para listar gerentes.' });
     }
 
     const managers = await prisma.manager.findMany({
@@ -207,7 +211,7 @@ router.get('/list-all', authenticateToken, async (req, res) => {
     res.status(200).json(managers);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Erro ao listar os managers.' });
+    res.status(500).json({ message: 'Erro ao listar os gerentes.' });
   }
 });
 
@@ -235,13 +239,13 @@ router.get('/:id', authenticateToken, async (req, res) => {
     if (!manager) {
       return res
         .status(404)
-        .json({ message: 'Manager não encontrado ou não pertence ao seu time.' });
+        .json({ message: 'Gerente não encontrado ou não pertence ao seu time.' });
     }
 
     res.status(200).json(manager);
   } catch (err) {
-    console.error('Erro ao buscar manager por ID:', err);
-    res.status(500).json({ message: 'Erro ao buscar dados do manager.' });
+    console.error('Erro ao buscar gerente por ID:', err);
+    res.status(500).json({ message: 'Erro ao buscar dados do gerente.' });
   }
 });
 
@@ -256,7 +260,11 @@ router.patch('/update/:id', authenticateToken, async (req, res) => {
     const { firstName, lastName, phone, categories } = req.body; // <-- Incluindo categories
 
     if (role !== 'TEAM') {
-      return res.status(403).json({ message: 'Acesso negado.' });
+      return res
+        .status(403)
+        .json({
+          message: 'Acesso negado. Apenas o proprietário da equipe pode editar um gerente.',
+        });
     }
 
     const manager = await prisma.manager.findUnique({
@@ -265,7 +273,7 @@ router.patch('/update/:id', authenticateToken, async (req, res) => {
     });
 
     if (!manager || manager.user.teamId !== teamId) {
-      return res.status(404).json({ message: 'Manager não encontrado no seu time.' });
+      return res.status(404).json({ message: 'Gerente não encontrado no seu time.' });
     }
 
     await prisma.$transaction(async (prisma) => {
@@ -309,12 +317,12 @@ router.patch('/update/:id', authenticateToken, async (req, res) => {
     });
 
     res.status(200).json({
-      message: 'Manager atualizado com sucesso.',
+      message: 'Gerente atualizado com sucesso.',
       manager: updatedManager,
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Erro ao atualizar o manager.' });
+    res.status(500).json({ message: 'Erro ao atualizar o gerente.' });
   }
 });
 

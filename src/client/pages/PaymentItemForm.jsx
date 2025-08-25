@@ -224,7 +224,7 @@ const PaymentItemForm = () => {
         </CustomButton>
         {editingItem && (
           <CustomButton
-            variant="outlined"
+            variant="contained"
             onClick={() => {
               setEditingItem(null);
               setFormData({ name: '', value: '', quantityEnabled: false });

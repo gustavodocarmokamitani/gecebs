@@ -7,7 +7,7 @@ const Payment = {
    */
   getById: async (id) => {
     try {
-      const response = await api.get(`/payment/${id}`);
+      const response = await api.get(`/payment/get-by-id/${id}`);
       return response.data;
     } catch (error) {
       throw error;

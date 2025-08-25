@@ -1,6 +1,6 @@
 // src/components/card/PaymentCard.jsx
 
-import React, { useState, useEffect } from 'react'; // Importe o useEffect
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -12,7 +12,7 @@ import {
   ListItemText,
   Collapse,
   Divider,
-  CircularProgress, // Importe o CircularProgress
+  CircularProgress,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTheme } from '@mui/material/styles';
@@ -21,13 +21,14 @@ import { useResponsive } from '../../hooks/useResponsive';
 import CustomButton from '../common/CustomButton';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
-import PaymentService from '../../services/Payment'; // Importe o serviço de pagamento
+import PaymentService from '../../services/Payment';
 import { toast } from 'react-toastify';
 
-const PaymentCard = ({ payment }) => {
+// 1. Adicione onEdit e onDelete às props do componente
+const PaymentCard = ({ payment, onEdit, onDelete }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [athletes, setAthletes] = useState([]); // Novo estado para atletas
-  const [isLoading, setIsLoading] = useState(false); // Novo estado para carregamento
+  const [athletes, setAthletes] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const theme = useTheme();
   const navigate = useNavigate();
 
@@ -42,19 +43,17 @@ const PaymentCard = ({ payment }) => {
     return index % 2 === 0 ? '#2c2c2c' : '#050505';
   };
 
-  const handleEditClick = () => {
-    navigate(`/payment/edit/${payment.id}`);
-  };
+  // Removido, pois a função será passada via props
+  // const handleEditClick = () => {
+  //   navigate(`/payment/edit/${payment.id}`);
+  // };
 
-  // Use useEffect para buscar os atletas quando o card for expandido
   useEffect(() => {
     if (isExpanded && payment?.id) {
       const fetchAthletes = async () => {
         setIsLoading(true);
         try {
-          // Chama a nova rota da API
           const fetchedAthletes = await PaymentService.getAthletesWithPaymentStatus(payment.id);
-
           setAthletes(fetchedAthletes);
         } catch (error) {
           console.error('Erro ao buscar atletas do pagamento:', error);
@@ -238,10 +237,18 @@ const PaymentCard = ({ payment }) => {
           </CardContent>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, my: 2, width: '90%' }}>
-            <CustomButton variant="contained" color="warning" onClick={handleEditClick}>
+            <CustomButton
+              variant="contained"
+              color="warning"
+              onClick={onEdit} // 2. Chame a prop onEdit
+            >
               Editar
             </CustomButton>
-            <CustomButton variant="contained" color="error">
+            <CustomButton
+              variant="contained"
+              color="error"
+              onClick={onDelete} // 2. Chame a prop onDelete
+            >
               Apagar
             </CustomButton>
           </Box>

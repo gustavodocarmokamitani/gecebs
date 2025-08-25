@@ -166,10 +166,10 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const { teamId, role } = req.user;
 
-    if (role !== 'MANAGER' && role !== 'TEAM') {
+    if (role !== 'TEAM') {
       return res.status(403).json({
         message:
-          'Acesso negado. Apenas managers e o proprietário da equipe podem deletar categorias.',
+          'Acesso negado. Apenas managers e o proprietário da equipe podem apagar as categorias.',
       });
     }
 

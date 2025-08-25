@@ -11,6 +11,7 @@ import PrivateRoute from './components/PrivateRoute.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Athlete from './pages/Athlete.jsx';
+import AthleteDashboard from './pages/AthleteDashboard.jsx';
 import AthleteForm from './pages/AthleteForm.jsx';
 import Manager from './pages/Manager.jsx';
 import ManagerForm from './pages/ManagerForm.jsx';
@@ -25,6 +26,7 @@ import Settings from './pages/Settings.jsx';
 import MainLayout from './components/MainLayout.jsx';
 import Analytics from './pages/Analytics.jsx';
 import { AuthProvider } from './hooks/AuthContext';
+import TeamConfig from './pages/TeamConfig.jsx';
 
 const root = document.getElementById('root');
 if (root !== null) {
@@ -48,6 +50,7 @@ if (root !== null) {
                   <Route path="athlete" element={<Athlete />} />
                   <Route path="athlete/new" element={<AthleteForm />} />
                   <Route path="athlete/edit/:athleteId" element={<AthleteForm />} />
+                  <Route path="athlete-dashboard" element={<AthleteDashboard />} />
                   <Route path="category" element={<Category />} />
                   <Route path="category/new" element={<CategoryForm />} />
                   <Route path="category/edit/:categoryId" element={<CategoryForm />} />
@@ -61,7 +64,7 @@ if (root !== null) {
                   <Route path="event" element={<Event />} />
                   <Route path="event/new" element={<EventForm />} />
                   <Route path="event/edit/:eventId" element={<EventForm />} />
-                  <Route path="settings" element={<Settings />} />
+                  <Route path="settings" element={<TeamConfig />} />
                 </Route>
               </Route>
             </Routes>

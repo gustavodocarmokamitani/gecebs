@@ -7,6 +7,7 @@ import userRoutes from './user.route.js';
 import eventRoutes from './event.route.js';
 import paymentRoutes from './payment.route.js';
 import managerRoutes from './manager.route.js';
+import teamRoutes from './team.route.js';
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router.use('/user', userRoutes);
 router.use('/event', eventRoutes);
 router.use('/payment', paymentRoutes);
 router.use('/manager', managerRoutes);
+router.use('/team', teamRoutes);
 
 /**
  * GET /health

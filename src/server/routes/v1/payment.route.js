@@ -88,7 +88,7 @@ router.get('/list-all-team-payments', authenticateToken, async (req, res) => {
 router.get('/:id/confirmations', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { teamId, role } = req.user;
+    const { teamId } = req.user; // Removida a role, pois não é utilizada
     const paymentId = parseInt(id);
 
     // 1. Busca o pagamento para pegar a categoria e verificar o time
@@ -143,15 +143,21 @@ router.get('/:id/confirmations', authenticateToken, async (req, res) => {
 });
 
 /**
- * GET /payment/:id
+ * GET /payment/get-by-id/:id
  * Busca um pagamento específico por ID, incluindo seus itens.
+ * RENOMEADA A ROTA PARA EVITAR CONFLITOS.
  */
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/get-by-id/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { teamId, role } = req.user;
+    const { teamId } = req.user; // Removida a role, pois não é utilizada
 
     const paymentId = parseInt(id);
+
+    // Verificação de ID inválido
+    if (isNaN(paymentId)) {
+      return res.status(400).json({ message: 'ID de pagamento inválido.' });
+    }
 
     const payment = await prisma.payment.findUnique({
       where: {
@@ -219,37 +225,14 @@ router.patch('/item/:id', authenticateToken, async (req, res) => {
 
 /**
  * GET /payment/list-all-team-payments
- * Lista todos os pagamentos criados para um time.
+ * **DUPLICADA:** A rota `list-all-team-payments` já existe no topo do arquivo. Remova esta rota duplicada.
  */
-router.get('/list-all-team-payments', authenticateToken, async (req, res) => {
-  try {
-    const { teamId, role } = req.user;
-
-    // Apenas managers podem ver todos os pagamentos do time
-    if (role !== 'MANAGER' && role !== 'TEAM') {
-      return res.status(403).json({
-        message: 'Acesso negado. Apenas managers podem listar todos os pagamentos do time.',
-      });
-    }
-
-    const payments = await prisma.payment.findMany({
-      where: {
-        teamId: teamId,
-      },
-      orderBy: {
-        dueDate: 'desc',
-      },
-    });
-
-    res.status(200).json(payments);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Erro ao listar os pagamentos do time.' });
-  }
-});
+// router.get('/list-all-team-payments', authenticateToken, async (req, res) => {
+//   ... (Remova este bloco)
+// });
 
 /**
- * GET /payment/list-my-payments
+ * GET /payment/list-all-payments-athletics
  * Lista todos os pagamentos de um atleta.
  */
 router.get('/list-all-payments-athletics', authenticateToken, async (req, res) => {

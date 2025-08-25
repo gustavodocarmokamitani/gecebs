@@ -86,7 +86,7 @@ const Category = () => {
         toast.success('Categoria excluída com sucesso!');
       } catch (err) {
         console.error('Erro ao excluir categoria:', err);
-        toast.error('Erro ao excluir categoria.');
+        toast.error(err.response?.data?.message || 'Erro ao salvar categoria.');
       }
     }
   };

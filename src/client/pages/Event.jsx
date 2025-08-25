@@ -8,6 +8,11 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Dialog, // Adicionado
+  DialogTitle, // Adicionado
+  DialogContent, // Adicionado
+  DialogContentText, // Adicionado
+  DialogActions, // Adicionado
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
@@ -32,6 +37,10 @@ function Event() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
+
+  // Estados para o modal de confirmação
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [eventIdToDelete, setEventIdToDelete] = useState(null);
 
   // Função para lidar com a mudança de estado dos acordeões
   const handleAccordionChange = (panel) => (event, isExpanded) => {
@@ -95,16 +104,28 @@ function Event() {
     navigate(`/event/edit/${id}`);
   };
 
-  // Lógica para deletar um evento
-  const handleDeleteEvent = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir este evento?')) {
+  // Funções para controlar o modal de confirmação
+  const handleOpenDeleteDialog = (id) => {
+    setEventIdToDelete(id);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setOpenDeleteDialog(false);
+    setEventIdToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    handleCloseDeleteDialog();
+    if (eventIdToDelete) {
       try {
-        await EventService.remove(id);
+        await EventService.remove(eventIdToDelete);
         toast.success('Evento excluído com sucesso!');
         fetchEvents(); // Recarrega os eventos
       } catch (err) {
         console.error('Erro ao excluir evento:', err);
-        toast.error('Erro ao excluir o evento.');
+        const errorMessage = err.response?.data?.message || 'Erro ao excluir o evento.';
+        toast.error(errorMessage);
       }
     }
   };
@@ -226,7 +247,7 @@ function Event() {
                       key={event.id}
                       event={event}
                       onEdit={() => handleEditEvent(event.id)}
-                      onDelete={() => handleDeleteEvent(event.id)}
+                      onDelete={() => handleOpenDeleteDialog(event.id)}
                     />
                   ))}
                 </Box>
@@ -235,6 +256,33 @@ function Event() {
           );
         })
       )}
+
+      {/* Diálogo de confirmação de exclusão */}
+      <Dialog
+        open={openDeleteDialog}
+        onClose={handleCloseDeleteDialog}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{'Atenção: Ação Irreversível'}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Ao excluir este evento, o registro será removido permanentemente, juntamente com todas
+            as suas informações e associações.
+            <br />
+            <br />
+            Esta ação é irreversível. Tem certeza que deseja continuar?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <CustomButton onClick={handleCloseDeleteDialog} variant="contained">
+            Cancelar
+          </CustomButton>
+          <CustomButton onClick={handleConfirmDelete} variant="contained" color="error" autoFocus>
+            Confirmar Exclusão
+          </CustomButton>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

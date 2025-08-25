@@ -161,7 +161,7 @@ const Manager = () => {
             gap: 0.5,
           }}
         >
-          Gestão de Managers
+          Gestão de Gerentes
           <span>
             <ChevronRightIcon sx={{ mt: 1.5 }} />
           </span>
@@ -175,19 +175,21 @@ const Manager = () => {
           onClick={handleAddManagerClick}
           sx={{ mr: isMobile ? 0 : 5 }}
         >
-          Adicionar Manager
+          Adicionar Gerente
         </CustomButton>
       </Box>
       <Divider sx={{ my: 2, borderColor: theme.palette.divider }} />
       <Box sx={{ mt: 2, mb: 4, mr: isMobile ? 0 : 5 }}>
         <CustomInput
-          label="Buscar Manager"
-          placeholder="Digite o nome do manager"
+          label="Buscar Gerente"
+          placeholder="Digite o nome do gerente"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </Box>
-
+      <Typography sx={{ my: 3 }} variant="h6" color="textSecondary">
+        Gerentes
+      </Typography>
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
           <CircularProgress />
@@ -198,22 +200,30 @@ const Manager = () => {
         </Typography>
       ) : Object.keys(filteredGroupedManagers).length === 0 ? (
         <Typography color="text.secondary" align="center">
-          Nenhum manager encontrado.
+          Nenhum gerente encontrado.
         </Typography>
       ) : (
-        Object.keys(filteredGroupedManagers).map((categoryId) => {
+        Object.keys(filteredGroupedManagers).map((categoryId, index) => {
           const group = filteredGroupedManagers[categoryId];
           return (
             <Accordion
               key={categoryId}
               expanded={expanded === categoryId}
               onChange={handleAccordionChange(categoryId)}
-              sx={{ mb: 2 }}
+              sx={{
+                mb: 2,
+                '&::before': { display: 'none' },
+                ...(index === 0 && {
+                  borderTopLeftRadius: theme.shape.borderRadius,
+                  borderTopRightRadius: theme.shape.borderRadius,
+                }),
+              }}
             >
               <AccordionSummary
                 expandIcon={<ExpandMoreIcon />}
                 aria-controls={`panel-${categoryId}-content`}
                 id={`panel-${categoryId}-header`}
+                sx={{ borderBottom: 'none' }}
               >
                 <Typography variant="h6" color="textPrimary">
                   {group.name}

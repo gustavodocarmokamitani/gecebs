@@ -18,7 +18,7 @@ const drawerWidth = 305;
 
 const Nav = ({ open, onClose }) => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const theme = useTheme();
   const deviceType = useResponsive();
   const isPermanent = deviceType === 'desktop';
@@ -26,6 +26,97 @@ const Nav = ({ open, onClose }) => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  // Lógica de renderização condicional
+  const isAthlete = user?.role === 'ATHLETE';
+  const isTeam = user?.role === 'TEAM';
+
+  const renderNavItems = () => {
+    if (isAthlete) {
+      // Retorna apenas o item de Sair para o atleta
+      return (
+        <List sx={{ p: 2 }}>
+          <NavItem
+            to="/logout"
+            primary="Sair"
+            icon={LogoutIcon}
+            onClick={() => {
+              handleLogout();
+              if (!isPermanent) {
+                onClose();
+              }
+            }}
+          />
+        </List>
+      );
+    }
+
+    // Retorna o menu completo para as outras roles (MANAGER, TEAM, etc.)
+    return (
+      <>
+        <List sx={{ p: 2 }}>
+          <NavItem
+            to="/analytics"
+            primary="Analytics"
+            icon={AnalyticsIcon}
+            onClick={isPermanent ? null : onClose}
+          />
+          <NavItem
+            to="/category"
+            primary="Gestão de Categorias"
+            icon={CategoryIcon}
+            onClick={isPermanent ? null : onClose}
+          />
+          <NavItem
+            to="/manager"
+            primary="Gestão de Gerentes"
+            icon={ManageAccountsIcon}
+            onClick={isPermanent ? null : onClose}
+          />
+          <NavItem
+            to="/athlete"
+            primary="Gestão de Atletas"
+            icon={SportsBaseballIcon}
+            onClick={isPermanent ? null : onClose}
+          />
+          <NavItem
+            to="/event"
+            primary="Central de Eventos"
+            icon={EmojiEventsIcon}
+            onClick={isPermanent ? null : onClose}
+          />
+          <NavItem
+            to="/payment"
+            primary="Central de Despesas"
+            icon={PaymentIcon}
+            onClick={isPermanent ? null : onClose}
+          />
+        </List>
+        <Divider sx={{ my: 1, borderColor: theme.palette.divider }} />
+        <List sx={{ p: 2 }}>
+          {isTeam && (
+            <NavItem
+              to="/settings"
+              primary="Settings"
+              icon={SettingsIcon}
+              onClick={isPermanent ? null : onClose}
+            />
+          )}
+          <NavItem
+            to="/logout"
+            primary="Sair"
+            icon={LogoutIcon}
+            onClick={() => {
+              handleLogout();
+              if (!isPermanent) {
+                onClose();
+              }
+            }}
+          />
+        </List>
+      </>
+    );
   };
 
   const drawerContent = (
@@ -55,69 +146,8 @@ const Nav = ({ open, onClose }) => {
       </Box>
       <Divider sx={{ my: 1, borderColor: theme.palette.divider }} />
 
-      {/* Itens do Menu */}
-      <List sx={{ p: 2 }}>
-        <NavItem
-          to="/analytics"
-          primary="Analytics"
-          icon={AnalyticsIcon}
-          onClick={isPermanent ? null : onClose}
-        />
-        <NavItem
-          to="/category"
-          primary="Gestão de Categoria"
-          icon={CategoryIcon}
-          onClick={isPermanent ? null : onClose}
-        />
-        <NavItem
-          to="/manager"
-          primary="Gestão de Manager"
-          icon={ManageAccountsIcon}
-          onClick={isPermanent ? null : onClose}
-        />
-        <NavItem
-          to="/athlete"
-          primary="Gestão de Atletas"
-          icon={SportsBaseballIcon}
-          onClick={isPermanent ? null : onClose}
-        />
-        <NavItem
-          to="/event"
-          primary="Central de Eventos"
-          icon={EmojiEventsIcon}
-          onClick={isPermanent ? null : onClose}
-        />
-        <NavItem
-          to="/payment"
-          primary="Central de Despesas"
-          icon={PaymentIcon}
-          onClick={isPermanent ? null : onClose}
-        />
-
-        {/* Outros itens podem ser adicionados aqui da mesma forma */}
-      </List>
-
-      <Divider sx={{ my: 1, borderColor: theme.palette.divider }} />
-
-      <List sx={{ p: 2 }}>
-        <NavItem
-          to="/settings"
-          primary="Settings"
-          icon={SettingsIcon}
-          onClick={isPermanent ? null : onClose}
-        />
-        <NavItem
-          to="/logout"
-          primary="Sair"
-          icon={LogoutIcon}
-          onClick={() => {
-            handleLogout();
-            if (!isPermanent) {
-              onClose();
-            }
-          }}
-        />
-      </List>
+      {/* Aqui a função de renderização é chamada */}
+      {renderNavItems()}
     </Box>
   );
 

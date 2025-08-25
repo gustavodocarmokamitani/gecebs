@@ -56,15 +56,15 @@ const ManagerForm = () => {
         if (isEditing) {
           const managerToEdit = await ManagerService.getById(managerId);
           if (managerToEdit) {
-            // ✅ CORREÇÃO: Usar a propriedade `category` para extrair o ID de forma segura
             const managerCategoriesIds = managerToEdit.categories?.map((c) => c.category.id) || [];
+            const userPhone = managerToEdit.user.username;
 
             setFormData({
               firstName: managerToEdit.firstName,
               lastName: managerToEdit.lastName,
               categories: managerCategoriesIds,
             });
-            handlePhoneChange({ target: { value: managerToEdit.user.username } }); // ✅ CORREÇÃO: o telefone está no user.username
+            handlePhoneChange({ target: { value: userPhone } });
           } else {
             setError('Manager não encontrado.');
             toast.error('Manager não encontrado.');
@@ -82,27 +82,30 @@ const ManagerForm = () => {
     fetchFormData();
   }, [managerId, isEditing, navigate, handlePhoneChange]);
 
+  // A verificação de telefone agora é apenas para o modo de criação.
   useEffect(() => {
-    const timeoutId = setTimeout(async () => {
-      const phoneToVerify = phoneNumber.replace(/\D/g, '');
+    if (!isEditing) {
+      const timeoutId = setTimeout(async () => {
+        const phoneToVerify = phoneNumber.replace(/\D/g, '');
 
-      if (phoneToVerify.length >= 10 && !isEditing) {
-        try {
-          const result = await Auth.checkPhoneExists(phoneToVerify);
-          if (result.exists) {
-            setPhoneServerError('Este telefone já está em uso.');
-          } else {
-            setPhoneServerError('');
+        if (phoneToVerify.length >= 10) {
+          try {
+            const result = await Auth.checkPhoneExists(phoneToVerify);
+            if (result.exists) {
+              setPhoneServerError('Este telefone já está em uso.');
+            } else {
+              setPhoneServerError('');
+            }
+          } catch (err) {
+            setPhoneServerError('Não foi possível verificar o telefone.');
           }
-        } catch (err) {
-          setPhoneServerError('Não foi possível verificar o telefone.');
+        } else {
+          setPhoneServerError('');
         }
-      } else {
-        setPhoneServerError('');
-      }
-    }, 500);
+      }, 500);
 
-    return () => clearTimeout(timeoutId);
+      return () => clearTimeout(timeoutId);
+    }
   }, [phoneNumber, isEditing]);
 
   const handleChange = (e) => {
@@ -129,7 +132,7 @@ const ManagerForm = () => {
       return;
     }
 
-    // A verificação de telefone só é necessária para criação, pois o campo é desabilitado na edição
+    // A validação de telefone agora é mais simples, pois o campo é desabilitado na edição
     if (!isEditing && (phoneError || phoneServerError)) {
       toast.error('Corrija os erros do telefone antes de continuar.');
       return;
@@ -138,20 +141,18 @@ const ManagerForm = () => {
     setIsLoading(true);
     setError(null);
 
-    const cleanedPhone = phoneNumber.replace(/\D/g, '');
-
     try {
       if (isEditing) {
-        // ✅ CORREÇÃO: Enviar o array de categorias no objeto de dados.
+        // Envia apenas os campos que podem ser alterados na edição
         const dataToSubmit = {
           firstName: formData.firstName,
           lastName: formData.lastName,
-          phone: cleanedPhone,
-          categories: formData.categories, // <-- AGORA INCLUÍDO!
+          categories: formData.categories,
         };
         await ManagerService.update(managerId, dataToSubmit);
         toast.success('Manager atualizado com sucesso!');
       } else {
+        const cleanedPhone = phoneNumber.replace(/\D/g, '');
         const dataToSubmit = {
           ...formData,
           phone: cleanedPhone,
@@ -270,9 +271,9 @@ const ManagerForm = () => {
                 value={phoneNumber}
                 onChange={handlePhoneChange}
                 required
-                disabled={isEditing}
                 error={!!phoneError || !!phoneServerError}
                 helperText={phoneError || phoneServerError}
+                disabled={isEditing} // Desabilita o campo se estiver editando
               />
             </Box>
           </Box>

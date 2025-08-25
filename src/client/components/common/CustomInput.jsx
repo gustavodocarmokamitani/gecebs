@@ -1,11 +1,26 @@
 import React from 'react';
-import { Grid2 as Grid, TextField, Typography } from '@mui/material';
+import { TextField, Typography } from '@mui/material';
+import { styled } from '@mui/system';
 
-const CustomInput = ({ label, placeholder, ...rest }) => {
+const StyledTextField = styled(TextField)(({ theme, type }) => ({
+  '& input[type="date"]::-webkit-calendar-picker-indicator': {
+    filter: type === 'date' ? 'invert(1)' : 'none',
+  },
+  '& input[type="date"]::-webkit-calendar-picker-indicator:hover': {
+    cursor: 'pointer',
+  },
+}));
+
+const CustomInput = ({ label, placeholder, type, ...rest }) => {
   return (
-    <Grid size={12}>
-      <TextField fullWidth variant="outlined" label={label} placeholder={placeholder} {...rest} />
-    </Grid>
+    <StyledTextField
+      fullWidth
+      variant="outlined"
+      label={label}
+      placeholder={placeholder}
+      type={type}
+      {...rest}
+    />
   );
 };
 

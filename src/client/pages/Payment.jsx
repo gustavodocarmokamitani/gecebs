@@ -8,11 +8,11 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
+  Dialog, // Adicionado
+  DialogTitle, // Adicionado
+  DialogContent, // Adicionado
+  DialogContentText, // Adicionado
+  DialogActions, // Adicionado
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
@@ -38,7 +38,7 @@ function Payment() {
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
 
-  // Novos estados para o modal de confirmação
+  // Estados para o modal de confirmação
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [paymentIdToDelete, setPaymentIdToDelete] = useState(null);
 
@@ -93,7 +93,11 @@ function Payment() {
     navigate('/payment/new');
   };
 
-  // Funções para o modal de exclusão
+  const handleEditPayment = (id) => {
+    navigate(`/payment/edit/${id}`);
+  };
+
+  // Funções para controlar o modal de confirmação
   const handleOpenDeleteDialog = (id) => {
     setPaymentIdToDelete(id);
     setOpenDeleteDialog(true);
@@ -108,18 +112,15 @@ function Payment() {
     handleCloseDeleteDialog();
     if (paymentIdToDelete) {
       try {
-        await PaymentService.remove(paymentIdToDelete);
+        await PaymentService.delete(paymentIdToDelete);
         toast.success('Pagamento excluído com sucesso!');
         fetchPayments();
       } catch (err) {
         console.error('Erro ao excluir pagamento:', err);
-        toast.error('Erro ao excluir o pagamento.');
+        const errorMessage = err.response?.data?.message || 'Erro ao excluir o pagamento.';
+        toast.error(errorMessage);
       }
     }
-  };
-
-  const handleEditPayment = (id) => {
-    navigate(`/payment/edit/${id}`);
   };
 
   return (
@@ -248,26 +249,26 @@ function Payment() {
         })
       )}
 
-      {/* Modal de confirmação de exclusão de pagamento */}
+      {/* Diálogo de confirmação de exclusão */}
       <Dialog
         open={openDeleteDialog}
         onClose={handleCloseDeleteDialog}
-        aria-labelledby="payment-dialog-title"
-        aria-describedby="payment-dialog-description"
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
       >
-        <DialogTitle id="payment-dialog-title">{'Atenção: Ação Irreversível'}</DialogTitle>
+        <DialogTitle id="alert-dialog-title">{'Atenção: Ação Irreversível'}</DialogTitle>
         <DialogContent>
-          <DialogContentText id="payment-dialog-description">
-            Ao excluir este pagamento, você irá deletar permanentemente **todos os itens**
-            associados a ele, bem como o **histórico de quem já pagou**. Esta ação não pode ser
-            desfeita.
+          <DialogContentText id="alert-dialog-description">
+            Ao excluir esta despesa, o registro será removido permanentemente.
             <br />
             <br />
-            Tem certeza que deseja continuar?
+            Esta ação é irreversível. Tem certeza que deseja continuar?
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <CustomButton onClick={handleCloseDeleteDialog}>Cancelar</CustomButton>
+          <CustomButton onClick={handleCloseDeleteDialog} variant="contained">
+            Cancelar
+          </CustomButton>
           <CustomButton onClick={handleConfirmDelete} variant="contained" color="error" autoFocus>
             Confirmar Exclusão
           </CustomButton>

@@ -1,3 +1,5 @@
+// src/pages/Athlete.jsx
+
 import React, { useState, useEffect } from 'react';
 import AthleteCard from '../components/card/AthleteCard';
 import {
@@ -8,6 +10,11 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Dialog, // Adicionado
+  DialogTitle, // Adicionado
+  DialogContent, // Adicionado
+  DialogContentText, // Adicionado
+  DialogActions, // Adicionado
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -36,16 +43,18 @@ function Athlete() {
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
 
+  // Estados para o modal de confirmação
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [athleteIdToDelete, setAthleteIdToDelete] = useState(null);
+
   const handleAccordionChange = (panel) => (event, isExpanded) => {
     setExpanded(isExpanded ? panel : false);
   };
 
-  // Lógica de agrupamento atualizada para incluir atletas sem categorias
   const groupAthletesByCategory = (allCategories, athletesToGroup) => {
     const groups = {};
     const noCategoryKey = 'no-category-group';
 
-    // Inicializa os grupos com as categorias conhecidas
     allCategories.forEach((cat) => {
       groups[cat.id] = {
         name: cat.name,
@@ -53,7 +62,6 @@ function Athlete() {
       };
     });
 
-    // Adiciona o grupo 'Sem Categoria'
     groups[noCategoryKey] = {
       name: 'Sem Categoria',
       athletes: [],
@@ -68,7 +76,6 @@ function Athlete() {
           }
         });
       } else {
-        // Adiciona o atleta ao grupo 'Sem Categoria'
         groups[noCategoryKey].athletes.push(athlete);
       }
     });
@@ -121,10 +128,22 @@ function Athlete() {
     navigate(`/athlete/edit/${id}`);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir este atleta?')) {
+  // Funções para controlar o modal de confirmação
+  const handleOpenDeleteDialog = (id) => {
+    setAthleteIdToDelete(id);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setOpenDeleteDialog(false);
+    setAthleteIdToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    handleCloseDeleteDialog();
+    if (athleteIdToDelete) {
       try {
-        await AthleteService.remove(id);
+        await AthleteService.remove(athleteIdToDelete);
         toast.success('Atleta excluído com sucesso!');
         fetchAthletesAndCategories();
       } catch (err) {
@@ -205,7 +224,6 @@ function Athlete() {
         Object.keys(groupedAthletes).map((categoryId, index) => {
           const group = groupedAthletes[categoryId];
 
-          // Renderiza o grupo apenas se houver atletas
           if (group.athletes.length === 0) {
             return null;
           }
@@ -217,9 +235,7 @@ function Athlete() {
               onChange={handleAccordionChange(categoryId)}
               sx={{
                 mb: 2,
-                '&::before': {
-                  display: 'none',
-                },
+                '&::before': { display: 'none' },
                 ...(index === 0 && {
                   borderTopLeftRadius: theme.shape.borderRadius,
                   borderTopRightRadius: theme.shape.borderRadius,
@@ -256,7 +272,7 @@ function Athlete() {
                       key={athlete.id}
                       athlete={athlete}
                       onEdit={() => handleEdit(athlete.id)}
-                      onDelete={() => handleDelete(athlete.id)}
+                      onDelete={() => handleOpenDeleteDialog(athlete.id)}
                     />
                   ))}
                 </Box>
@@ -265,6 +281,33 @@ function Athlete() {
           );
         })
       )}
+
+      {/* Diálogo de confirmação de exclusão */}
+      <Dialog
+        open={openDeleteDialog}
+        onClose={handleCloseDeleteDialog}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{'Atenção: Ação Irreversível'}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Ao excluir este atleta, o perfil será removido permanentemente, juntamente com todas as
+            suas informações e associações a categorias.
+            <br />
+            <br />
+            Esta ação é irreversível. Tem certeza que deseja continuar?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <CustomButton onClick={handleCloseDeleteDialog} variant="contained">
+            Cancelar
+          </CustomButton>
+          <CustomButton onClick={handleConfirmDelete} variant="contained" color="error" autoFocus>
+            Confirmar Exclusão
+          </CustomButton>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
