@@ -8,6 +8,7 @@ import eventRoutes from './event.route.js';
 import paymentRoutes from './payment.route.js';
 import managerRoutes from './manager.route.js';
 import teamRoutes from './team.route.js';
+import analyticsRoutes from './analytics.route.js';
 
 const router = Router();
 
@@ -20,6 +21,7 @@ router.use('/event', eventRoutes);
 router.use('/payment', paymentRoutes);
 router.use('/manager', managerRoutes);
 router.use('/team', teamRoutes);
+router.use('/analytics', analyticsRoutes);
 
 /**
  * GET /health

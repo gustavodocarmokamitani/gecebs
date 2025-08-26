@@ -61,6 +61,7 @@
     "react-toastify": "^11.0.3",
     "strong-error-handler": "^5.0.15",
     "typescript": "^5.9.2",
+    "xlsx": "^0.18.5",
     "yup": "^1.6.1"
   },
   "devDependencies": {

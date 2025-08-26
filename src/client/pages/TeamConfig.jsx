@@ -1,5 +1,3 @@
-// src/pages/TeamConfig.jsx
-
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -20,6 +18,11 @@ import { useNavigate } from 'react-router-dom';
 import { useResponsive } from '../hooks/useResponsive';
 import usePhoneInput from '../hooks/usePhoneInput';
 import Auth from '../services/Auth';
+
+// Importações para a nova funcionalidade de relatório
+import AnalyticsService from '../services/Analytics';
+import * as XLSX from 'xlsx';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 
 const TeamConfig = () => {
   const theme = useTheme();
@@ -44,6 +47,10 @@ const TeamConfig = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmittingTeamData, setIsSubmittingTeamData] = useState(false);
   const [isSubmittingPasswords, setIsSubmittingPasswords] = useState(false);
+
+  // Estados para a funcionalidade de exportação
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState(null);
 
   const [expanded, setExpanded] = useState('dados-do-time');
 
@@ -161,6 +168,128 @@ const TeamConfig = () => {
       toast.error(errorMessage);
     } finally {
       setIsSubmittingPasswords(false);
+    }
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    setExportError(null);
+
+    try {
+      const categoriesData = await AnalyticsService.exportAnalytics();
+
+      if (!Array.isArray(categoriesData) || categoriesData.length === 0) {
+        toast.info('Nenhum dado válido encontrado para gerar o relatório.');
+        setIsExporting(false);
+        return;
+      }
+
+      const workbook = XLSX.utils.book_new();
+
+      // 1. Planilha de Atletas
+      const allAthletes = [];
+      categoriesData.forEach((category) => {
+        if (category.athletes && category.athletes.length > 0) {
+          const formattedAthletes = category.athletes.map((link) => ({
+            'Nome Completo': `${link.athlete.firstName} ${link.athlete.lastName}`,
+            Usuário: link.athlete.user.username,
+            Telefone: link.athlete.phone,
+            'Data de Nascimento': link.athlete.birthDate
+              ? new Date(link.athlete.birthDate).toLocaleDateString('pt-BR')
+              : 'N/A',
+            'ID Federação': link.athlete.federationId || 'N/A',
+            'ID Confederação': link.athlete.confederationId || 'N/A',
+            Categoria: category.name,
+          }));
+          allAthletes.push(...formattedAthletes);
+        }
+      });
+
+      if (allAthletes.length > 0) {
+        const athletesSheet = XLSX.utils.json_to_sheet(allAthletes);
+        XLSX.utils.book_append_sheet(workbook, athletesSheet, 'Atletas');
+      }
+
+      // 2. Planilha de Eventos
+      const allEvents = [];
+      categoriesData.forEach((category) => {
+        if (category.events && category.events.length > 0) {
+          const formattedEvents = category.events.map((event) => ({
+            Evento: event.name,
+            Data: event.date ? new Date(event.date).toLocaleDateString('pt-BR') : 'N/A',
+            Local: event.location || 'N/A',
+            Tipo: event.type,
+            Categoria: category.name,
+          }));
+          allEvents.push(...formattedEvents);
+        }
+      });
+
+      if (allEvents.length > 0) {
+        const eventsSheet = XLSX.utils.json_to_sheet(allEvents);
+        XLSX.utils.book_append_sheet(workbook, eventsSheet, 'Eventos');
+      }
+
+      // 3. Planilha de Pagamentos
+      const allPayments = [];
+      categoriesData.forEach((category) => {
+        if (category.payments && category.payments.length > 0) {
+          const formattedPayments = category.payments.map((payment) => ({
+            Pagamento: payment.name,
+            'Valor (R$)': payment.value,
+            Vencimento: payment.dueDate
+              ? new Date(payment.dueDate).toLocaleDateString('pt-BR')
+              : 'N/A',
+            Categoria: category.name,
+          }));
+          allPayments.push(...formattedPayments);
+        }
+      });
+
+      if (allPayments.length > 0) {
+        const paymentsSheet = XLSX.utils.json_to_sheet(allPayments);
+        XLSX.utils.book_append_sheet(workbook, paymentsSheet, 'Pagamentos');
+      }
+
+      // 4. Planilha de Resumo Financeiro
+      const financialSummaryData = [];
+      let totalValue = 0;
+      categoriesData.forEach((category) => {
+        let categoryTotalValue = 0;
+        category.payments.forEach((payment) => {
+          categoryTotalValue += payment.value;
+        });
+        if (categoryTotalValue > 0) {
+          financialSummaryData.push({
+            Categoria: category.name,
+            'Valor Recebido (R$)': categoryTotalValue.toFixed(2),
+          });
+          totalValue += categoryTotalValue;
+        }
+      });
+      if (financialSummaryData.length > 0) {
+        financialSummaryData.push({
+          Categoria: 'TOTAL GERAL',
+          'Valor Recebido (R$)': totalValue.toFixed(2),
+        });
+        const financialSummarySheet = XLSX.utils.json_to_sheet(financialSummaryData);
+        XLSX.utils.book_append_sheet(workbook, financialSummarySheet, 'Resumo Financeiro');
+      }
+
+      // Gerar o arquivo Excel final
+      if (workbook.SheetNames.length > 0) {
+        XLSX.writeFile(workbook, 'Relatorio_Gerencial.xlsx');
+        toast.success('Relatório gerencial gerado com sucesso!');
+      } else {
+        toast.info('Nenhum dado para gerar o relatório.');
+      }
+    } catch (err) {
+      console.error('Erro ao gerar o relatório:', err);
+      const errorMessage = err.response?.data?.error || 'Erro ao gerar o relatório.';
+      setExportError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -329,6 +458,63 @@ const TeamConfig = () => {
               </CustomButton>
             </Box>
           </form>
+        </AccordionDetails>
+      </Accordion>
+
+      {/* Accordion: Relatórios de Análise */}
+      <Accordion
+        expanded={expanded === 'relatorios'}
+        onChange={handleAccordionChange('relatorios')}
+        sx={{
+          mt: 3,
+          mb: 2,
+          borderRadius: '20px',
+          '&::before': { display: 'none' },
+          border: `1px solid ${theme.palette.divider}`,
+        }}
+      >
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon />}
+          sx={{
+            backgroundColor: theme.palette.primary.main,
+            color: 'white',
+            borderBottom: 'none',
+            borderRadius: `20px 20px ${expanded === 'relatorios' ? '0 0' : '20px 20px'}`,
+            '& .MuiAccordionSummary-expandIconWrapper.Mui-expanded': {
+              transform: 'rotate(180deg)',
+            },
+          }}
+        >
+          <Typography variant="subtitle1">Relatórios de Análise</Typography>
+        </AccordionSummary>
+        <AccordionDetails sx={{ px: isMobile ? 1 : 4, pt: 3, pb: 4 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+            }}
+          >
+            <Typography variant="body2" color="text.secondary">
+              Clique no botão abaixo para gerar e baixar um relatório completo com dados de atletas,
+              pagamentos e eventos em formato Excel.
+            </Typography>
+            <CustomButton
+              onClick={handleExport}
+              variant="contained"
+              disabled={isExporting}
+              startIcon={
+                isExporting ? <CircularProgress size={20} color="inherit" /> : <FileDownloadIcon />
+              }
+            >
+              {isExporting ? 'Gerando...' : 'Baixar Relatório'}
+            </CustomButton>
+            {exportError && (
+              <Typography color="error" variant="body2">
+                {exportError}
+              </Typography>
+            )}
+          </Box>
         </AccordionDetails>
       </Accordion>
     </Box>
