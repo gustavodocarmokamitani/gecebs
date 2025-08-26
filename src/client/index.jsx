@@ -29,6 +29,8 @@ import { AuthProvider } from './hooks/AuthContext';
 import TeamConfig from './pages/TeamConfig.jsx';
 import Welcome from './pages/Welcome.jsx';
 import PaymentSelectionPage from './pages/PaymentSelectionPage.jsx';
+import AthleteEventsHistory from './pages/AtheleteEventsHistory.jsx';
+import AthletePaymentsHistory from './pages/AthletePaymentsHistory.jsx';
 
 const root = document.getElementById('root');
 if (root !== null) {
@@ -47,12 +49,14 @@ if (root !== null) {
               {/* Container de rotas privadas */}
               <Route element={<PrivateRoute />}>
                 <Route path="/" element={<MainLayout />}>
-                  <Route index element={<Welcome />} />
+                  <Route index path="/" element={<Welcome />} />
                   <Route path="analytics" element={<Analytics />} />
                   <Route path="athlete" element={<Athlete />} />
                   <Route path="athlete/new" element={<AthleteForm />} />
                   <Route path="athlete/edit/:athleteId" element={<AthleteForm />} />
                   <Route path="athlete-dashboard" element={<AthleteDashboard />} />
+                  <Route path="athlete-event-history" element={<AthleteEventsHistory />} />
+                  <Route path="athlete-payment-history" element={<AthletePaymentsHistory />} />
                   <Route path="payment/:paymentId" element={<PaymentSelectionPage />} />
 
                   <Route path="category" element={<Category />} />

@@ -7,11 +7,25 @@ import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import CategoryIcon from '@mui/icons-material/Category';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SpaceDashboardIcon from '@mui/icons-material/SpaceDashboard';
+import HistoryIcon from '@mui/icons-material/History';
+import HomeIcon from '@mui/icons-material/Home';
 
 const routesConfig = {
+  '/': {
+    title: 'Home',
+    icon: HomeIcon,
+  },
   '/athelete-dashboard': {
     title: 'Dashboard',
     icon: SpaceDashboardIcon,
+  },
+  '/athelete-event-history': {
+    title: 'Histórico de Eventos',
+    icon: HistoryIcon,
+  },
+  '/athelete-payment-history': {
+    title: 'Histórico de Despesas',
+    icon: HistoryIcon,
   },
   '/analytics': {
     title: 'Analytics',

@@ -14,6 +14,8 @@ import NavItem from './NavItem';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/AuthContext';
 import SpaceDashboardIcon from '@mui/icons-material/SpaceDashboard';
+import HistoryIcon from '@mui/icons-material/History';
+import HomeIcon from '@mui/icons-material/Home';
 
 const drawerWidth = 305;
 
@@ -38,10 +40,23 @@ const Nav = ({ open, onClose }) => {
     if (isAthlete) {
       return (
         <List sx={{ p: 2 }}>
+          <NavItem to="/" primary="Home" icon={HomeIcon} onClick={isPermanent ? null : onClose} />
           <NavItem
             to="/athlete-dashboard"
             primary="Dashboard"
             icon={SpaceDashboardIcon}
+            onClick={isPermanent ? null : onClose}
+          />
+          <NavItem
+            to="/athlete-event-history"
+            primary="Histórico de Eventos"
+            icon={HistoryIcon}
+            onClick={isPermanent ? null : onClose}
+          />
+          <NavItem
+            to="/athlete-payment-history"
+            primary="Histórico de Despesas"
+            icon={HistoryIcon}
             onClick={isPermanent ? null : onClose}
           />
           <NavItem
@@ -62,6 +77,7 @@ const Nav = ({ open, onClose }) => {
     return (
       <>
         <List sx={{ p: 2 }}>
+          <NavItem to="/" primary="Home" icon={HomeIcon} onClick={isPermanent ? null : onClose} />
           <NavItem
             to="/analytics"
             primary="Analytics"

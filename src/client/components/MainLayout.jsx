@@ -6,6 +6,8 @@ import MenuIcon from '@mui/icons-material/Menu';
 import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '@mui/material/styles';
 import routesConfig from '../utils/routesConfig';
+import HomeIcon from '@mui/icons-material/Home';
+import SettingsIcon from '@mui/icons-material/Settings';
 
 const drawerWidth = 300;
 
@@ -20,11 +22,26 @@ const MainLayout = () => {
   const theme = useTheme();
   const location = useLocation();
 
-  // --- Lógica Ajustada para Encontrar a Rota Principal ---
+  const mockRoutes = {
+    '/undefined': {
+      title: 'Home',
+      icon: HomeIcon,
+    },
+    '/settings': {
+      title: 'Configuração',
+      icon: SettingsIcon,
+    },
+  };
+
+  const allRoutes = { ...routesConfig, ...mockRoutes };
+
   const pathSegments = location.pathname.split(/[/ -]/).filter(Boolean);
   const mainPath = `/${pathSegments[0]}`;
+  console.log(mainPath);
 
-  const pageInfo = routesConfig[mainPath] || {};
+  const pageInfo = allRoutes[mainPath] || {};
+  console.log(pageInfo);
+
   const pageTitle = pageInfo.title || 'Página Não Encontrada';
   const pageIcon = pageInfo.icon;
 
@@ -40,7 +57,6 @@ const MainLayout = () => {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* AppBar apenas no mobile */}
       {isDrawer && (
         <AppBar
           position="fixed"
@@ -72,7 +88,6 @@ const MainLayout = () => {
         </AppBar>
       )}
 
-      {/* Nav: Drawer no mobile, Sidebar fixa no desktop */}
       <Box
         component="nav"
         sx={{
@@ -83,7 +98,6 @@ const MainLayout = () => {
         <Nav open={isDrawer ? mobileOpen : true} onClose={handleDrawerToggle} />
       </Box>
 
-      {/* Conteúdo principal */}
       <Box
         component="main"
         sx={{
