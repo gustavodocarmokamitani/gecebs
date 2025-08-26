@@ -5,14 +5,16 @@ import CustomButton from '../common/CustomButton';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { useResponsive } from '../../hooks/useResponsive';
+import { useNavigate } from 'react-router-dom';
 
 const AthletePaymentCard = ({ payment, onConfirmPayment }) => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const deviceType = useResponsive();
   const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
 
-  const isPending = payment.status === 'pending';
-  const isPaid = payment.status === 'paid';
+  const isPending = payment.paidAt === null;
+  const isPaid = payment.paidAt !== null;
 
   const handleConfirmClick = () => {
     if (onConfirmPayment) {
@@ -20,62 +22,88 @@ const AthletePaymentCard = ({ payment, onConfirmPayment }) => {
     }
   };
 
-  const statusIcon = isPaid ? (
-    <CheckCircleIcon color="success" sx={{ fontSize: 40 }} />
-  ) : (
-    <AccessTimeIcon color="warning" sx={{ fontSize: 40 }} />
-  );
+  const formattedDate = new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(new Date(payment.dueDate));
 
   return (
     <Card
       sx={{
-        width: isMobile ? '100%' : '350px',
-        margin: 'auto',
+        minWidth: isMobile ? 270 : 350,
+        maxWidth: isMobile ? 300 : 350,
+        margin: 2,
         borderRadius: '12px',
         backgroundColor: theme.palette.background.paper,
         color: theme.palette.text.primary,
         border: `1px solid ${theme.palette.text.secondary}`,
-        my: 2,
       }}
     >
-      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-          <Typography variant="h6" fontWeight="bold">
-            {payment.name}
+      <Box sx={{ p: 2 }}>
+        <Typography variant="p" component="div" fontWeight="bold">
+          {payment.name}
+        </Typography>
+        <Typography variant="p" color={theme.palette.text.secondary} component="div" sx={{ mt: 1 }}>
+          Vencimento: {formattedDate}
+        </Typography>
+        <Typography variant="p" color={theme.palette.text.secondary} component="div">
+          Valor: R$ {payment.value.toFixed(2)}
+        </Typography>
+
+        <Divider sx={{ my: 2, borderColor: theme.palette.divider }} />
+
+        <CardContent sx={{ p: 0 }}>
+          <Typography variant="subtitle2" fontWeight={600} color="text.secondary" component="div">
+            Detalhes do Pagamento
           </Typography>
-          <Typography variant="body1" color={theme.palette.text.secondary}>
-            Valor: R$ {payment.value.toFixed(2)}
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }} component="div">
+            Chave PIX: {payment.pixKey || 'Não aplicável'}
           </Typography>
-          <Typography variant="body2" color={theme.palette.text.secondary}>
-            Vencimento: {new Intl.DateTimeFormat('pt-BR').format(new Date(payment.dueDate))}
+
+          {/* Exibe os itens se existirem */}
+          {payment.items && payment.items.length > 0 && (
+            <Typography variant="body2" color="text.secondary" component="div">
+              Itens:
+              {payment.items.map((item, index) => (
+                <Typography key={index} variant="body2" color="text.secondary" component="div">
+                  - {item.name}: R$ {item.value.toFixed(2)}
+                </Typography>
+              ))}
+            </Typography>
+          )}
+
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ display: 'flex', alignItems: 'center', mt: 2 }}
+            component="div"
+          >
+            Status: {isPaid ? 'Pago' : 'Pendente'}
+            <Box component="span" sx={{ ml: 1 }}>
+              {isPaid ? (
+                <CheckCircleIcon color="success" sx={{ fontSize: 20 }} />
+              ) : (
+                <AccessTimeIcon color="warning" sx={{ fontSize: 20 }} />
+              )}
+            </Box>
           </Typography>
-        </Box>
-        {statusIcon}
+        </CardContent>
       </Box>
 
-      <Divider sx={{ my: 1, borderColor: theme.palette.divider }} />
-
-      <CardContent sx={{ pt: 1, pb: 2 }}>
-        <Typography variant="subtitle2" fontWeight={600} color="text.secondary">
-          Detalhes do Pagamento
-        </Typography>
-        <Typography variant="body2" color="text.primary">
-          Chave PIX: {payment.pixKey || 'Não aplicável'}
-        </Typography>
-      </CardContent>
-
-      {isPending && (
-        <Box sx={{ p: 2, pt: 0 }}>
+      {/* Ações para o atleta */}
+      <Box sx={{ p: 2, pt: 0 }}>
+        {isPending && onConfirmPayment && (
           <CustomButton
             variant="contained"
-            color="success"
+            color="secondary"
             onClick={handleConfirmClick}
             sx={{ width: '100%' }}
           >
-            Confirmar Pagamento
+            Realizar Pagamento
           </CustomButton>
-        </Box>
-      )}
+        )}
+      </Box>
     </Card>
   );
 };

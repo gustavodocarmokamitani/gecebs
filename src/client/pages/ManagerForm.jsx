@@ -1,4 +1,3 @@
-// src/pages/ManagerForm.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -11,17 +10,17 @@ import {
   FormControlLabel,
   CircularProgress,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { toast } from 'react-toastify';
+import { useResponsive } from '../hooks/useResponsive';
+import usePhoneInput from '../hooks/usePhoneInput';
+import ManagerService from '../services/Manager';
+import CategoryService from '../services/Category';
+import Auth from '../services/Auth';
 import CustomInput from '../components/common/CustomInput';
 import CustomButton from '../components/common/CustomButton';
 import CustomCheckbox from '../components/common/CustomCheckbox';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { useTheme } from '@mui/material/styles';
-import { useResponsive } from '../hooks/useResponsive';
-import ManagerService from '../services/Manager';
-import CategoryService from '../services/Category';
-import { toast } from 'react-toastify';
-import usePhoneInput from '../hooks/usePhoneInput';
-import Auth from '../services/Auth';
 
 const ManagerForm = () => {
   const { managerId } = useParams();
@@ -82,7 +81,6 @@ const ManagerForm = () => {
     fetchFormData();
   }, [managerId, isEditing, navigate, handlePhoneChange]);
 
-  // A verificação de telefone agora é apenas para o modo de criação.
   useEffect(() => {
     if (!isEditing) {
       const timeoutId = setTimeout(async () => {
@@ -132,7 +130,6 @@ const ManagerForm = () => {
       return;
     }
 
-    // A validação de telefone agora é mais simples, pois o campo é desabilitado na edição
     if (!isEditing && (phoneError || phoneServerError)) {
       toast.error('Corrija os erros do telefone antes de continuar.');
       return;
@@ -143,7 +140,6 @@ const ManagerForm = () => {
 
     try {
       if (isEditing) {
-        // Envia apenas os campos que podem ser alterados na edição
         const dataToSubmit = {
           firstName: formData.firstName,
           lastName: formData.lastName,
@@ -218,11 +214,9 @@ const ManagerForm = () => {
         </Typography>
       </Box>
       <Divider sx={{ my: 2, borderColor: theme.palette.divider }} />
-
       <Typography sx={{ my: 3 }} variant="h6" color="textSecondary">
         Dados do Manager
       </Typography>
-
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
           <CircularProgress />
@@ -273,11 +267,10 @@ const ManagerForm = () => {
                 required
                 error={!!phoneError || !!phoneServerError}
                 helperText={phoneError || phoneServerError}
-                disabled={isEditing} // Desabilita o campo se estiver editando
+                disabled={isEditing}
               />
             </Box>
           </Box>
-
           <FormControl component="fieldset" variant="standard" sx={{ mt: 2 }}>
             <FormLabel component="legend" sx={{ color: theme.palette.text.secondary }}>
               Categorias Gerenciadas*
@@ -301,7 +294,6 @@ const ManagerForm = () => {
                 ))}
             </FormGroup>
           </FormControl>
-
           <Box sx={{ mt: 2 }}>
             <CustomButton
               fullWidth

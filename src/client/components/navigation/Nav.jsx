@@ -13,6 +13,7 @@ import { useResponsive } from '../../hooks/useResponsive';
 import NavItem from './NavItem';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/AuthContext';
+import SpaceDashboardIcon from '@mui/icons-material/SpaceDashboard';
 
 const drawerWidth = 305;
 
@@ -30,13 +31,19 @@ const Nav = ({ open, onClose }) => {
 
   // Lógica de renderização condicional
   const isAthlete = user?.role === 'ATHLETE';
+  const isManager = user?.role === 'MANAGER';
   const isTeam = user?.role === 'TEAM';
 
   const renderNavItems = () => {
     if (isAthlete) {
-      // Retorna apenas o item de Sair para o atleta
       return (
         <List sx={{ p: 2 }}>
+          <NavItem
+            to="/athlete-dashboard"
+            primary="Dashboard"
+            icon={SpaceDashboardIcon}
+            onClick={isPermanent ? null : onClose}
+          />
           <NavItem
             to="/logout"
             primary="Sair"
@@ -52,7 +59,6 @@ const Nav = ({ open, onClose }) => {
       );
     }
 
-    // Retorna o menu completo para as outras roles (MANAGER, TEAM, etc.)
     return (
       <>
         <List sx={{ p: 2 }}>
@@ -95,7 +101,7 @@ const Nav = ({ open, onClose }) => {
         </List>
         <Divider sx={{ my: 1, borderColor: theme.palette.divider }} />
         <List sx={{ p: 2 }}>
-          {isTeam && (
+          {!isAthlete && !isManager && (
             <NavItem
               to="/settings"
               primary="Settings"
@@ -146,7 +152,6 @@ const Nav = ({ open, onClose }) => {
       </Box>
       <Divider sx={{ my: 1, borderColor: theme.palette.divider }} />
 
-      {/* Aqui a função de renderização é chamada */}
       {renderNavItems()}
     </Box>
   );

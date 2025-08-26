@@ -24,8 +24,13 @@ app.use('/api/v1/', routes);
 /**
  * Redirect root URL to the frontend application.
  */
+// app.get('/', (req, res) => {
+//   res.redirect('http://localhost:3000');
+// });
+
 app.get('/', (req, res) => {
-  res.redirect('http://localhost:3000');
+  const host = req.headers.host; // exemplo: "192.168.15.7:3000"
+  res.redirect(`http://${host}`);
 });
 
 /**
@@ -44,6 +49,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-httpServer.listen(process.env.PORT || 3000, () => {
-  console.log(`Listening on port ${process.env.PORT}`);
+httpServer.listen(process.env.PORT || 3000, '0.0.0.0', () => {
+  console.log(`Listening on port ${process.env.PORT || 3000}`);
 });

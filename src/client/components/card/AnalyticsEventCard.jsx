@@ -1,5 +1,3 @@
-// src/client/components/card/AnalyticsEventCard.jsx
-
 import React, { useState, useEffect } from 'react';
 import {
   Card,
@@ -14,17 +12,20 @@ import {
   Divider,
   CircularProgress,
 } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTheme } from '@mui/material/styles';
-import { useResponsive } from '../../hooks/useResponsive';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
-import EventService from '../../services/Event';
+import PaidIcon from '@mui/icons-material/Paid';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { toast } from 'react-toastify';
+import { useResponsive } from '../../hooks/useResponsive';
+import EventService from '../../services/Event';
 
 const AnalyticsEventCard = ({ event }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [athletes, setAthletes] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const theme = useTheme();
 
@@ -41,28 +42,31 @@ const AnalyticsEventCard = ({ event }) => {
 
   useEffect(() => {
     if (isExpanded && event?.id) {
-      const fetchAthletes = async () => {
+      const fetchData = async () => {
         setIsLoading(true);
         try {
-          // Chama a API para buscar atletas
           const fetchedAthletes = await EventService.getConfirmedAthletes(event.id);
+          const fetchedAnalytics = await EventService.getEventAnalytics(event.id);
           setAthletes(fetchedAthletes);
+          setAnalytics(fetchedAnalytics);
         } catch (error) {
-          console.error('Erro ao buscar atletas do evento:', error);
-          toast.error('Erro ao carregar a lista de atletas.');
+          console.error('Erro ao buscar dados do evento:', error);
+          toast.error('Erro ao carregar os dados de analytics.');
           setAthletes([]);
+          setAnalytics(null);
         } finally {
           setIsLoading(false);
         }
       };
-      fetchAthletes();
+      fetchData();
     }
   }, [isExpanded, event?.id]);
 
   return (
     <Card
       sx={{
-        minWidth: isMobile ? 300 : 350,
+        minWidth: isMobile ? 270 : 350,
+        maxWidth: isMobile ? 300 : 350,
         margin: 2,
         borderRadius: '12px',
         backgroundColor: theme.palette.background.paper,
@@ -94,20 +98,26 @@ const AnalyticsEventCard = ({ event }) => {
           <Typography variant="p" component="div">
             {event.name}
           </Typography>
-          <Typography variant="p" color={theme.palette.text.secondary} component="div">
-            {event.description}
-          </Typography>
-          <Typography variant="p" color={theme.palette.text.secondary} component="div">
-            {event.location}
-          </Typography>
-          <Typography
-            variant="p"
-            color={theme.palette.text.secondary}
-            component="div"
-            fontWeight={300}
-          >
-            {new Intl.DateTimeFormat('pt-BR').format(new Date(event.date))}
-          </Typography>
+          {event.description && (
+            <Typography variant="p" color={theme.palette.text.secondary} component="div">
+              {event.description}
+            </Typography>
+          )}
+          {event.location && (
+            <Typography variant="p" color={theme.palette.text.secondary} component="div">
+              {event.location}
+            </Typography>
+          )}
+          {event.date && (
+            <Typography
+              variant="p"
+              color={theme.palette.text.secondary}
+              component="div"
+              fontWeight={300}
+            >
+              {new Intl.DateTimeFormat('pt-BR').format(new Date(event.date))}
+            </Typography>
+          )}
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <IconButton
@@ -125,7 +135,6 @@ const AnalyticsEventCard = ({ event }) => {
           </IconButton>
         </Box>
       </Box>
-
       <Collapse in={isExpanded} timeout="auto" unmountOnExit>
         <Box
           sx={{
@@ -135,6 +144,48 @@ const AnalyticsEventCard = ({ event }) => {
             flexDirection: 'column',
           }}
         >
+          <CardContent sx={{ textAlign: 'center', pt: 2, pb: 0 }}>
+            <Typography
+              variant="subtitle3"
+              fontWeight={600}
+              sx={{ mb: 1, color: theme.palette.text.secondary }}
+            >
+              Métricas do Evento
+            </Typography>
+            <Divider sx={{ my: 1, borderColor: theme.palette.divider }} />
+            {isLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                <CircularProgress size={24} />
+              </Box>
+            ) : analytics ? (
+              <List dense>
+                <ListItem
+                  sx={{ backgroundColor: getBackgroundColor(0), borderRadius: '8px', mb: 1 }}
+                >
+                  <CheckCircleOutlineIcon sx={{ mr: 2, color: theme.palette.success.main }} />
+                  <ListItemText
+                    primary={`Atletas Confirmados: ${analytics.confirmedAthletesCount}`}
+                  />
+                </ListItem>
+                <ListItem
+                  sx={{ backgroundColor: getBackgroundColor(1), borderRadius: '8px', mb: 1 }}
+                >
+                  <PaidIcon sx={{ mr: 2, color: theme.palette.warning.main }} />
+                  <ListItemText
+                    primary={`Valor Recebido: R$ ${analytics.totalValueReceived.toFixed(2)}`}
+                  />
+                </ListItem>
+                <ListItem sx={{ backgroundColor: getBackgroundColor(2), borderRadius: '8px' }}>
+                  <ShoppingCartIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
+                  <ListItemText primary={`Itens Pagos: ${analytics.totalItemsPaid}`} />
+                </ListItem>
+              </List>
+            ) : (
+              <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 2 }}>
+                Não foi possível carregar as métricas.
+              </Typography>
+            )}
+          </CardContent>
           <CardContent sx={{ textAlign: 'center', pt: 2, pb: 0 }}>
             <Typography
               variant="subtitle3"

@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { Button, Grid2 as Grid, Link as MuiLink, CircularProgress } from '@mui/material';
+import { Grid2 as Grid, Link as MuiLink } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/auth/AuthLayout';
 import CustomInput from '../components/common/CustomInput';
 import CustomButton from '../components/common/CustomButton';
 import { useAuth } from '../hooks/AuthContext';
 import { toast } from 'react-toastify';
-import Auth from '../services/Auth';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -34,7 +33,7 @@ const Login = () => {
 
       if (success) {
         toast.success('Login realizado com sucesso!');
-        navigate('/analytics');
+        navigate('/');
       } else {
         // A função `login` já lida com o erro e mostra o toast, então você pode
         // simplesmente não fazer nada aqui ou adicionar um log.

@@ -23,11 +23,15 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
 import PaymentService from '../../services/Payment';
 import { toast } from 'react-toastify';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import PaidIcon from '@mui/icons-material/Paid'; // Ícone para valor recebido
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'; // Ícone para itens pagos
 
-// 1. Adicione onEdit e onDelete às props do componente
 const PaymentCard = ({ payment, onEdit, onDelete }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [athletes, setAthletes] = useState([]);
+  const [summary, setSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const theme = useTheme();
   const navigate = useNavigate();
@@ -43,34 +47,33 @@ const PaymentCard = ({ payment, onEdit, onDelete }) => {
     return index % 2 === 0 ? '#2c2c2c' : '#050505';
   };
 
-  // Removido, pois a função será passada via props
-  // const handleEditClick = () => {
-  //   navigate(`/payment/edit/${payment.id}`);
-  // };
-
   useEffect(() => {
     if (isExpanded && payment?.id) {
-      const fetchAthletes = async () => {
+      const fetchData = async () => {
         setIsLoading(true);
         try {
           const fetchedAthletes = await PaymentService.getAthletesWithPaymentStatus(payment.id);
+          const fetchedSummary = await PaymentService.getPaymentSummary(payment.id);
           setAthletes(fetchedAthletes);
+          setSummary(fetchedSummary);
         } catch (error) {
-          console.error('Erro ao buscar atletas do pagamento:', error);
-          toast.error('Erro ao carregar a lista de atletas.');
+          console.error('Erro ao buscar dados do pagamento:', error);
+          toast.error('Erro ao carregar os dados de pagamento.');
           setAthletes([]);
+          setSummary(null);
         } finally {
           setIsLoading(false);
         }
       };
-      fetchAthletes();
+      fetchData();
     }
   }, [isExpanded, payment?.id]);
 
   return (
     <Card
       sx={{
-        minWidth: isMobile ? 300 : 350,
+        minWidth: isMobile ? 270 : 350,
+        maxWidth: isMobile ? 300 : 350,
         margin: 2,
         borderRadius: '12px',
         backgroundColor: theme.palette.background.paper,
@@ -102,8 +105,24 @@ const PaymentCard = ({ payment, onEdit, onDelete }) => {
           <Typography variant="p" component="div">
             {payment.name}
           </Typography>
-          <Typography variant="p" color={theme.palette.text.secondary} component="div">
-            Valor: R$ {payment.value.toFixed(2)}
+          <Typography
+            variant="p"
+            color={theme.palette.text.secondary}
+            component="div"
+            sx={{ display: 'flex', alignItems: 'center' }}
+          >
+            <PaidIcon fontSize="small" sx={{ mr: 1, color: theme.palette.success.main }} />
+            Valor Recebido: <br />
+            R$ {summary?.totalValueReceived?.toFixed(2) || '0.00'}
+          </Typography>
+          <Typography
+            variant="p"
+            color={theme.palette.text.secondary}
+            component="div"
+            sx={{ display: 'flex', alignItems: 'center' }}
+          >
+            <ShoppingCartIcon fontSize="small" sx={{ mr: 1, color: theme.palette.primary.main }} />
+            Itens Pagos: {summary?.totalItemsPaid || 0}
           </Typography>
           <Typography variant="p" color={theme.palette.text.secondary} component="div">
             Vencimento: {new Intl.DateTimeFormat('pt-BR').format(new Date(payment.dueDate))}

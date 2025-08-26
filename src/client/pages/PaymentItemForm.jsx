@@ -179,7 +179,7 @@ const PaymentItemForm = () => {
           <ChevronRightIcon sx={{ mt: 1.5 }} />
         </span>
         <Box component="span" color="primary.main">
-          {payment ? `Adicionar Itens: ${payment.name}` : 'Carregando...'}
+          {payment ? `Adicionar Itens` : 'Carregando...'}
         </Box>
       </Typography>
       <Divider sx={{ my: 2, borderColor: theme.palette.divider }} />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import EventCard from '../components/card/EventCard';
+import { useNavigate } from 'react-router-dom';
 import {
   Typography,
   Divider,
@@ -8,22 +8,22 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Dialog, // Adicionado
-  DialogTitle, // Adicionado
-  DialogContent, // Adicionado
-  DialogContentText, // Adicionado
-  DialogActions, // Adicionado
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { useNavigate } from 'react-router-dom';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
+import { toast } from 'react-toastify';
 import { useResponsive } from '../hooks/useResponsive';
+import EventService from '../services/Event';
+import EventCard from '../components/card/EventCard';
 import CustomButton from '../components/common/CustomButton';
 import CustomInput from '../components/common/CustomInput';
-import EventService from '../services/Event';
-import { toast } from 'react-toastify';
 
 function Event() {
   const theme = useTheme();
@@ -37,17 +37,13 @@ function Event() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
-
-  // Estados para o modal de confirmação
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [eventIdToDelete, setEventIdToDelete] = useState(null);
 
-  // Função para lidar com a mudança de estado dos acordeões
   const handleAccordionChange = (panel) => (event, isExpanded) => {
     setExpanded(isExpanded ? panel : false);
   };
 
-  // Função para buscar eventos da API
   const fetchEvents = async () => {
     setIsLoading(true);
     setError(null);
@@ -63,7 +59,6 @@ function Event() {
     }
   };
 
-  // Função para agrupar eventos por categoria
   const groupEventsByCategory = (eventsToGroup) => {
     const groups = {};
     eventsToGroup.forEach((event) => {
@@ -79,32 +74,33 @@ function Event() {
     return groups;
   };
 
-  // Chama a API quando o componente é montado
   useEffect(() => {
     fetchEvents();
   }, []);
 
-  // Filtra e agrupa os eventos sempre que a lista de eventos ou o termo de busca muda
   useEffect(() => {
-    const filteredEvents = events.filter(
-      (event) =>
+    const filteredEvents = events.filter((event) => {
+      // Converte a data do evento para o formato 'DD/MM/YYYY' para a busca
+      const eventDate = new Date(event.date).toLocaleDateString('pt-BR');
+
+      // Verifica se o termo de busca está no nome, no local OU na data
+      return (
         event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        event.location.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+        event.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        eventDate.includes(searchTerm)
+      );
+    });
     setGroupedEvents(groupEventsByCategory(filteredEvents));
   }, [events, searchTerm]);
 
-  // Navega para a página de criação de eventos
   const handleAddEventClick = () => {
     navigate('/event/new');
   };
 
-  // Navega para a página de edição de eventos
   const handleEditEvent = (id) => {
     navigate(`/event/edit/${id}`);
   };
 
-  // Funções para controlar o modal de confirmação
   const handleOpenDeleteDialog = (id) => {
     setEventIdToDelete(id);
     setOpenDeleteDialog(true);
@@ -121,7 +117,7 @@ function Event() {
       try {
         await EventService.remove(eventIdToDelete);
         toast.success('Evento excluído com sucesso!');
-        fetchEvents(); // Recarrega os eventos
+        fetchEvents();
       } catch (err) {
         console.error('Erro ao excluir evento:', err);
         const errorMessage = err.response?.data?.message || 'Erro ao excluir o evento.';
@@ -175,17 +171,14 @@ function Event() {
       <Box sx={{ mt: 2, mb: 4, mr: isMobile ? 0 : 5 }}>
         <CustomInput
           label="Buscar Evento"
-          placeholder="Digite o nome do evento ou local"
+          placeholder="Digite o nome do evento, local, dia ou ano"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </Box>
-
       <Typography sx={{ my: 3 }} variant="h6" color="textSecondary">
         Eventos
       </Typography>
-
-      {/* Renderização Condicional */}
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
           <CircularProgress />
@@ -256,8 +249,6 @@ function Event() {
           );
         })
       )}
-
-      {/* Diálogo de confirmação de exclusão */}
       <Dialog
         open={openDeleteDialog}
         onClose={handleCloseDeleteDialog}

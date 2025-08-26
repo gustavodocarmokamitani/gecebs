@@ -233,22 +233,64 @@ router.patch('/item/:id', authenticateToken, async (req, res) => {
 
 /**
  * GET /payment/list-all-payments-athletics
- * Lista todos os pagamentos de um atleta.
+ * Lista todos os pagamentos de um atleta, filtrados por sua categoria.
  */
 router.get('/list-all-payments-athletics', authenticateToken, async (req, res) => {
   try {
-    const { userId, role } = req.user;
+    const { id: userId, role } = req.user;
 
-    // Apenas atletas podem listar seus próprios pagamentos
     if (role !== 'ATHLETE') {
       return res
         .status(403)
         .json({ message: 'Acesso negado. Apenas atletas podem listar seus pagamentos.' });
     }
 
+    // 1. Buscar o ID do atleta associado ao userId
+    const athlete = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        athlete: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    // Se não for encontrado, retorne uma lista vazia
+    if (!athlete || !athlete.athlete) {
+      return res.status(200).json([]);
+    }
+
+    const athleteId = athlete.athlete.id;
+
+    // 2. Buscar todas as categorias do atleta usando a tabela de junção
+    const athleteCategories = await prisma.categoryAthlete.findMany({
+      where: { athleteId: athleteId },
+      select: {
+        categoryId: true,
+      },
+    });
+
+    const athleteCategoryIds = athleteCategories.map((cat) => cat.categoryId);
+
+    // Se não houver categorias, retorne uma lista vazia
+    if (athleteCategoryIds.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    // 3. Listar os pagamentos do atleta, filtrando pelos pagamentos que têm uma de suas categorias
     const myPayments = await prisma.paymentUser.findMany({
       where: {
         userId: userId,
+        // Filtra pelo evento associado ao pagamento, que por sua vez deve pertencer a uma das categorias do atleta
+        payment: {
+          event: {
+            categoryId: {
+              in: athleteCategoryIds,
+            },
+          },
+        },
       },
       include: {
         payment: {
@@ -258,7 +300,7 @@ router.get('/list-all-payments-athletics', authenticateToken, async (req, res) =
             value: true,
             dueDate: true,
             pixKey: true,
-            items: true, // Incluindo os itens para o atleta
+            items: true,
           },
         },
       },
@@ -454,13 +496,15 @@ router.delete('/delete/:id', authenticateToken, async (req, res) => {
 router.post('/confirm', authenticateToken, async (req, res) => {
   try {
     const { paymentId } = req.body;
-    const { userId } = req.user;
+    // Extrai o 'id' do objeto req.user, que foi anexado pelo middleware
+    const { id } = req.user;
 
+    // Use o 'id' do usuário para a query
     const existingPaymentUser = await prisma.paymentUser.findUnique({
       where: {
         paymentId_userId: {
           paymentId: parseInt(paymentId),
-          userId: userId,
+          userId: id, // <--- Agora usa a variável 'id'
         },
       },
     });
@@ -479,7 +523,7 @@ router.post('/confirm', authenticateToken, async (req, res) => {
       where: {
         paymentId_userId: {
           paymentId: parseInt(paymentId),
-          userId: userId,
+          userId: id, // <--- Aqui também
         },
       },
       data: {
@@ -575,6 +619,181 @@ router.delete('/item/:itemId', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('Erro na rota DELETE /payment/item/:itemId:', err);
     res.status(500).json({ message: 'Erro ao deletar o item.' });
+  }
+});
+
+/**
+ * GET /payment/details/:id
+ * Busca os detalhes de um pagamento, incluindo a lista de itens.
+ * Esta rota deve ser acessível por atletas.
+ */
+router.get('/details/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id: paymentId } = req.params; // Using alias to avoid conflict
+    const { id: userId } = req.user; // ✅ CORRIGIDO: Destruturação para 'id'
+
+    // 1. Encontra o registro PaymentUser para o usuário logado e o pagamento
+    const paymentUser = await prisma.paymentUser.findUnique({
+      where: {
+        paymentId_userId: {
+          paymentId: parseInt(paymentId),
+          userId: userId, // ✅ Usando a variável corrigida
+        },
+      },
+    });
+
+    if (!paymentUser) {
+      return res.status(404).json({ message: 'Pagamento não encontrado para este usuário.' });
+    }
+
+    // 2. Busca os detalhes do pagamento e seus itens
+    const paymentDetails = await prisma.payment.findUnique({
+      where: {
+        id: parseInt(paymentId),
+      },
+      include: {
+        items: true, // Corrigido para 'items' conforme a sua rota 'get-by-id'
+      },
+    });
+
+    if (!paymentDetails) {
+      return res.status(404).json({ message: 'Pagamento não encontrado.' });
+    }
+
+    res.status(200).json(paymentDetails);
+  } catch (err) {
+    console.error('Erro ao buscar detalhes do pagamento:', err);
+    res.status(500).json({ message: 'Erro ao buscar detalhes do pagamento.' });
+  }
+});
+
+/**
+ * POST /payment/process-with-items
+ * Processa o pagamento de um usuário, marcando-o como 'pago' e
+ * registrando os itens selecionados nas tabelas Confirmation e ConfirmationItem.
+ */
+router.post('/process-with-items', authenticateToken, async (req, res) => {
+  try {
+    const { paymentId, selectedItems } = req.body;
+    const { id: userId } = req.user;
+
+    const parsedPaymentId = parseInt(paymentId);
+
+    // Use uma transação para garantir que todas as operações sejam atômicas.
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Encontra o pagamento para verificar o ID do evento, se existir
+      const payment = await tx.payment.findUnique({
+        where: { id: parsedPaymentId },
+        select: { eventId: true },
+      });
+      if (!payment) {
+        throw new Error('Pagamento não encontrado.');
+      }
+
+      // 2. Cria um novo registro na tabela Confirmation, vinculado ao evento.
+      //    Se o pagamento não estiver vinculado a um evento, você pode ajustar
+      //    o schema para permitir o eventId nulo ou criar um Confirmation sem
+      //    essa relação. Vamos assumir que há um evento.
+      if (!payment.eventId) {
+        throw new Error(
+          'Pagamento não está vinculado a um evento, não é possível criar uma confirmação.'
+        );
+      }
+
+      const newConfirmation = await tx.confirmation.create({
+        data: {
+          eventId: payment.eventId,
+        },
+      });
+
+      // 3. Atualiza o registro PaymentUser para marcar como pago
+      //    Ainda é útil para rastrear quem pagou.
+      const confirmedPaymentUser = await tx.paymentUser.update({
+        where: {
+          paymentId_userId: {
+            paymentId: parsedPaymentId,
+            userId: userId,
+          },
+        },
+        data: {
+          paidAt: new Date(),
+        },
+      });
+
+      // 4. Conecta o usuário à nova confirmação
+      const confirmedUserInConfirmation = await tx.confirmationUser.create({
+        data: {
+          confirmationId: newConfirmation.id,
+          userId: userId,
+          status: true,
+          confirmedAt: new Date(),
+        },
+      });
+
+      // 5. Cria os registros em ConfirmationItem usando o ID da nova confirmação
+      const confirmationItemsData = Object.entries(selectedItems).map(([itemId, quantity]) => ({
+        paymentItemId: parseInt(itemId),
+        quantity: quantity,
+        confirmationId: newConfirmation.id,
+        userId: userId,
+      }));
+
+      // Cria múltiplos registros de uma vez
+      await tx.confirmationItem.createMany({
+        data: confirmationItemsData,
+      });
+
+      return { confirmedPaymentUser, newConfirmation };
+    });
+
+    res.status(200).json({
+      message: 'Pagamento confirmado e itens registrados com sucesso.',
+      confirmation: result.newConfirmation,
+    });
+  } catch (err) {
+    console.error('Erro ao processar o pagamento:', err.message);
+    res.status(500).json({ message: err.message || 'Erro ao processar o pagamento.' });
+  }
+});
+
+/**
+ * GET /api/v1/payment/:paymentId/summary
+ * Retorna a soma do valor total e a contagem de itens de todos os pagamentos confirmados
+ * para um pagamento específico.
+ */
+router.get('/:paymentId/summary', authenticateToken, async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+    const parsedPaymentId = parseInt(paymentId);
+
+    // Encontrar os ConfirmationItem relacionados aos pagamentos confirmados
+    const confirmationItems = await prisma.confirmationItem.findMany({
+      where: {
+        paymentItem: {
+          paymentId: parsedPaymentId,
+        },
+      },
+      include: {
+        paymentItem: true, // Inclui os detalhes do item para obter o valor
+      },
+    });
+
+    // Calcular o valor total e a quantidade total de itens
+    let totalValueReceived = 0;
+    let totalItemsPaid = 0;
+
+    confirmationItems.forEach((item) => {
+      totalValueReceived += item.paymentItem.value * item.quantity;
+      totalItemsPaid += item.quantity;
+    });
+
+    res.status(200).json({
+      totalValueReceived,
+      totalItemsPaid,
+    });
+  } catch (err) {
+    console.error('Erro ao obter o resumo do pagamento:', err);
+    res.status(500).json({ message: 'Erro ao obter o resumo do pagamento.' });
   }
 });
 

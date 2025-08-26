@@ -1,3 +1,5 @@
+// src/middleware/auth.js
+
 import jwt from 'jsonwebtoken';
 
 const authenticateToken = (req, res, next) => {
@@ -11,14 +13,10 @@ const authenticateToken = (req, res, next) => {
   jwt.verify(token, process.env.JWT_SECRET, (err, userPayload) => {
     if (err) {
       return res.status(403).json({ message: 'Token inválido.' });
-    } // Aqui está o ajuste importante!
-    // Anexamos apenas as informações necessárias diretamente ao req.user
+    }
 
-    req.user = {
-      id: userPayload.id,
-      role: userPayload.role,
-      teamId: userPayload.teamId,
-    };
+    req.user = userPayload;
+
     next();
   });
 };

@@ -6,8 +6,13 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import CategoryIcon from '@mui/icons-material/Category';
 import LogoutIcon from '@mui/icons-material/Logout';
+import SpaceDashboardIcon from '@mui/icons-material/SpaceDashboard';
 
 const routesConfig = {
+  '/athelete-dashboard': {
+    title: 'Dashboard',
+    icon: SpaceDashboardIcon,
+  },
   '/analytics': {
     title: 'Analytics',
     icon: AnalyticsIcon,

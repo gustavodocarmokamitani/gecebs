@@ -1,7 +1,5 @@
-// src/pages/Athlete.jsx
-
 import React, { useState, useEffect } from 'react';
-import AthleteCard from '../components/card/AthleteCard';
+import { useNavigate } from 'react-router-dom';
 import {
   Typography,
   Divider,
@@ -10,27 +8,26 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Dialog, // Adicionado
-  DialogTitle, // Adicionado
-  DialogContent, // Adicionado
-  DialogContentText, // Adicionado
-  DialogActions, // Adicionado
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
+import { toast } from 'react-toastify';
 import { useResponsive } from '../hooks/useResponsive';
+import AthleteService from '../services/Athlete';
+import CategoryService from '../services/Category';
 import CustomButton from '../components/common/CustomButton';
 import CustomInput from '../components/common/CustomInput';
-import { useNavigate } from 'react-router-dom';
-import CategoryService from '../services/Category';
-import AthleteService from '../services/Athlete';
-import { toast } from 'react-toastify';
+import AthleteCard from '../components/card/AthleteCard';
 
 function Athlete() {
   const theme = useTheme();
-
   const deviceType = useResponsive();
   const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
   const navigate = useNavigate();
@@ -42,11 +39,10 @@ function Athlete() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
-
-  // Estados para o modal de confirmação
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [athleteIdToDelete, setAthleteIdToDelete] = useState(null);
 
+  //se remover o event o accordio nao funciona
   const handleAccordionChange = (panel) => (event, isExpanded) => {
     setExpanded(isExpanded ? panel : false);
   };
@@ -128,7 +124,6 @@ function Athlete() {
     navigate(`/athlete/edit/${id}`);
   };
 
-  // Funções para controlar o modal de confirmação
   const handleOpenDeleteDialog = (id) => {
     setAthleteIdToDelete(id);
     setOpenDeleteDialog(true);
@@ -203,11 +198,9 @@ function Athlete() {
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </Box>
-
       <Typography sx={{ my: 3 }} variant="h6" color="textSecondary">
         Atletas
       </Typography>
-
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
           <CircularProgress />
@@ -223,11 +216,9 @@ function Athlete() {
       ) : (
         Object.keys(groupedAthletes).map((categoryId, index) => {
           const group = groupedAthletes[categoryId];
-
           if (group.athletes.length === 0) {
             return null;
           }
-
           return (
             <Accordion
               key={categoryId}
@@ -281,8 +272,6 @@ function Athlete() {
           );
         })
       )}
-
-      {/* Diálogo de confirmação de exclusão */}
       <Dialog
         open={openDeleteDialog}
         onClose={handleCloseDeleteDialog}

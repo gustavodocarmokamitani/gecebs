@@ -1,5 +1,3 @@
-// src/hooks/AuthContext.jsx
-
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import { toast } from 'react-toastify';
 import { jwtDecode } from 'jwt-decode';
@@ -30,11 +28,8 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       setUser(JSON.parse(storedUser));
     } else if (token) {
-      // 👈  Verifique se o token existe antes de deslogar
-      // Se o token existe, mas é inválido, deslogue e mostre a mensagem
-      logout(true); // Passe um argumento para indicar que a sessão expirou
+      logout(true);
     } else {
-      // Se não houver token, apenas finalize o carregamento sem deslogar
       setIsAuthenticated(false);
       setUser(null);
     }
@@ -44,10 +39,13 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       const { token, user } = await Auth.login(credentials);
+
       localStorage.setItem('authToken', token);
       localStorage.setItem('user', JSON.stringify(user));
       setIsAuthenticated(true);
       setUser(user);
+      console.log(user);
+
       return true;
     } catch (error) {
       console.error('Login error:', error);
@@ -56,14 +54,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Ajuste a função logout para ser mais flexível
   const logout = (showToast = false) => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
     setIsAuthenticated(false);
     setUser(null);
     if (showToast) {
-      // 👈 Exibe a mensagem apenas quando a sessão realmente expira
       toast.info('Sessão expirada. Por favor, faça login novamente.');
     }
   };
@@ -72,7 +68,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
     user,
     login,
-    logout: () => logout(false), // Ajuste a chamada de logout para o resto do app
+    logout: () => logout(false),
     isLoading,
   };
 

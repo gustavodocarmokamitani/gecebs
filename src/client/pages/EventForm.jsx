@@ -10,14 +10,14 @@ import {
   MenuItem,
   CircularProgress,
 } from '@mui/material';
-import CustomInput from '../components/common/CustomInput';
-import CustomButton from '../components/common/CustomButton';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useTheme } from '@mui/material/styles';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { toast } from 'react-toastify';
 import { useResponsive } from '../hooks/useResponsive';
 import EventService from '../services/Event';
 import CategoryService from '../services/Category';
-import { toast } from 'react-toastify';
+import CustomInput from '../components/common/CustomInput';
+import CustomButton from '../components/common/CustomButton';
 
 // Dados que não mudam e podem ficar aqui
 const eventTypes = [
@@ -171,7 +171,6 @@ const EventForm = () => {
         </Typography>
       </Box>
       <Divider sx={{ my: 2, borderColor: theme.palette.divider }} />
-
       <Typography sx={{ my: 3 }} variant="h6" color="textSecondary">
         Dados do Evento
       </Typography>
@@ -186,7 +185,6 @@ const EventForm = () => {
         }}
       >
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-          {/* Nome do Evento */}
           <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
             <CustomInput
               label="Nome do Evento"
@@ -196,7 +194,6 @@ const EventForm = () => {
               required
             />
           </Box>
-          {/* Data */}
           <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
             <CustomInput
               label="Data"
@@ -208,7 +205,6 @@ const EventForm = () => {
               required
             />
           </Box>
-          {/* Local */}
           <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
             <CustomInput
               label="Local"
@@ -217,7 +213,6 @@ const EventForm = () => {
               onChange={handleChange}
             />
           </Box>
-          {/* Tipo do Evento (TRAINING ou CHAMPIONSHIP) */}
           <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
             <FormControl fullWidth>
               <InputLabel id="type-label">Tipo do Evento</InputLabel>
@@ -237,7 +232,6 @@ const EventForm = () => {
               </Select>
             </FormControl>
           </Box>
-          {/* Categoria do Evento (usando o ID) */}
           <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
             <FormControl fullWidth>
               <InputLabel id="category-label">Categoria</InputLabel>
@@ -258,7 +252,6 @@ const EventForm = () => {
               </Select>
             </FormControl>
           </Box>
-          {/* Descrição */}
           <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
             <CustomInput
               label="Descrição"

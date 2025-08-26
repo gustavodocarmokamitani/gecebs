@@ -50,6 +50,7 @@ const Event = {
   listMyEvents: async () => {
     try {
       const response = await api.get('/event/list-all-events-athletics');
+
       return response.data;
     } catch (error) {
       throw error;
@@ -107,6 +108,33 @@ const Event = {
   toggleConfirmation: async (confirmationId) => {
     try {
       const response = await api.patch(`/event/toggle-confirmation/${confirmationId}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Confirma a presença do atleta em um evento.
+   * Rota: POST /event/confirm-presence/:eventId
+   * @param {number} eventId - ID do evento.
+   */
+  confirmPresence: async (eventId) => {
+    try {
+      const response = await api.post(`/event/confirm-presence/${eventId}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Obtém as métricas de análise para um evento.
+   * Rota: GET /event/:eventId/analytics
+   */
+  getEventAnalytics: async (eventId) => {
+    try {
+      const response = await api.get(`/event/${eventId}/analytics`);
       return response.data;
     } catch (error) {
       throw error;

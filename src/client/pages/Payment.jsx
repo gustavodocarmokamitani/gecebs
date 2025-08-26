@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import PaymentCard from '../components/card/PaymentCard';
+import { useNavigate } from 'react-router-dom';
 import {
   Typography,
   Divider,
@@ -8,22 +8,22 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Dialog, // Adicionado
-  DialogTitle, // Adicionado
-  DialogContent, // Adicionado
-  DialogContentText, // Adicionado
-  DialogActions, // Adicionado
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { useNavigate } from 'react-router-dom';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
+import { toast } from 'react-toastify';
 import { useResponsive } from '../hooks/useResponsive';
+import PaymentService from '../services/Payment';
+import PaymentCard from '../components/card/PaymentCard';
 import CustomButton from '../components/common/CustomButton';
 import CustomInput from '../components/common/CustomInput';
-import PaymentService from '../services/Payment';
-import { toast } from 'react-toastify';
 
 function Payment() {
   const theme = useTheme();
@@ -37,8 +37,6 @@ function Payment() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
-
-  // Estados para o modal de confirmação
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [paymentIdToDelete, setPaymentIdToDelete] = useState(null);
 
@@ -81,11 +79,35 @@ function Payment() {
   }, []);
 
   useEffect(() => {
-    const filteredPayments = payments.filter(
-      (payment) =>
-        payment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (payment.pixKey && payment.pixKey.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const normalizedSearchTerm = searchTerm.trim();
+
+    // Expressões regulares para os formatos de data
+    const isDayMonthYear = /^\d{2}\/\d{2}\/\d{4}$/.test(normalizedSearchTerm);
+    const isMonthYear = /^\d{2}\/\d{4}$/.test(normalizedSearchTerm);
+    const isYear = /^\d{4}$/.test(normalizedSearchTerm);
+
+    const filteredPayments = payments.filter((payment) => {
+      // Lógica de busca por nome ou chave PIX (já existente)
+      const matchesNameOrPixKey =
+        payment.name.toLowerCase().includes(normalizedSearchTerm.toLowerCase()) ||
+        (payment.pixKey &&
+          payment.pixKey.toLowerCase().includes(normalizedSearchTerm.toLowerCase()));
+
+      // Lógica de busca por data
+      const paymentDate = new Date(payment.dueDate);
+      const paymentDay = String(paymentDate.getDate()).padStart(2, '0');
+      const paymentMonth = String(paymentDate.getMonth() + 1).padStart(2, '0');
+      const paymentYear = paymentDate.getFullYear();
+
+      const matchesDate =
+        (isDayMonthYear &&
+          `${paymentDay}/${paymentMonth}/${paymentYear}` === normalizedSearchTerm) ||
+        (isMonthYear && `${paymentMonth}/${paymentYear}` === normalizedSearchTerm) ||
+        (isYear && paymentYear === Number(normalizedSearchTerm));
+
+      return matchesNameOrPixKey || matchesDate;
+    });
+
     setGroupedPayments(groupPaymentsByCategory(filteredPayments));
   }, [payments, searchTerm]);
 
@@ -97,7 +119,6 @@ function Payment() {
     navigate(`/payment/edit/${id}`);
   };
 
-  // Funções para controlar o modal de confirmação
   const handleOpenDeleteDialog = (id) => {
     setPaymentIdToDelete(id);
     setOpenDeleteDialog(true);

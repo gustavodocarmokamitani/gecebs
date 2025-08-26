@@ -1,15 +1,13 @@
-// src/pages/CategoryForm.jsx
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, Divider, CircularProgress } from '@mui/material';
-import CustomInput from '../components/common/CustomInput';
-import CustomButton from '../components/common/CustomButton';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useTheme } from '@mui/material/styles';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { toast } from 'react-toastify';
 import { useResponsive } from '../hooks/useResponsive';
 import CategoryService from '../services/Category';
-import { toast } from 'react-toastify';
+import CustomInput from '../components/common/CustomInput';
+import CustomButton from '../components/common/CustomButton';
 
 const CategoryForm = () => {
   const { categoryId } = useParams();
@@ -56,11 +54,9 @@ const CategoryForm = () => {
     setIsLoading(true);
     try {
       if (isEditing) {
-        // Lógica de edição
         await CategoryService.update(categoryId, formData);
         toast.success('Categoria atualizada com sucesso!');
       } else {
-        // Lógica de criação
         await CategoryService.create(formData);
         toast.success('Categoria criada com sucesso!');
       }
@@ -119,13 +115,10 @@ const CategoryForm = () => {
           </Box>
         </Typography>
       </Box>
-
       <Divider sx={{ my: 2, borderColor: theme.palette.divider }} />
-
       <Typography sx={{ my: 3 }} variant="h6" color="textSecondary">
         Dados da Categoria
       </Typography>
-
       {isLoading && isEditing ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
           <CircularProgress />

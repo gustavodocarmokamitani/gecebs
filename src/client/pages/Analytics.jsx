@@ -1,7 +1,4 @@
-// src/pages/Analytics.jsx
-
 import React, { useState, useEffect } from 'react';
-import AnalyticsEventCard from '../components/card/AnalyticsEventCard';
 import {
   Typography,
   Divider,
@@ -13,9 +10,10 @@ import {
 import { useTheme } from '@mui/material/styles';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { toast } from 'react-toastify';
+import AnalyticsEventCard from '../components/card/AnalyticsEventCard';
 import Event from '../services/Event';
 import CategoryService from '../services/Category';
-import { toast } from 'react-toastify';
 
 function Analytics() {
   const theme = useTheme();
@@ -27,9 +25,6 @@ function Analytics() {
   const handleAccordionChange = (panel) => (event, isExpanded) => {
     setExpanded(isExpanded ? panel : false);
   };
-
-  // REMOÇÃO: A função adaptEvent não é mais necessária aqui.
-  // A responsabilidade de buscar os atletas será do AnalyticsEventCard.
 
   const fetchData = async () => {
     try {

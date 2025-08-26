@@ -150,6 +150,55 @@ const Payment = {
       throw error;
     }
   },
+
+  listMyPayments: async () => {
+    try {
+      const response = await api.get('/payment/list-all-payments-athletics');
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao listar os pagamentos do atleta:', error);
+      throw error;
+    }
+  },
+
+  // ✅ Rota para buscar detalhes de um pagamento específico
+  getPaymentDetails: async (paymentId) => {
+    try {
+      const response = await api.get(`/payment/details/${paymentId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar detalhes do pagamento:', error);
+      throw error;
+    }
+  },
+
+  // ✅ Rota para processar o pagamento com os itens selecionados
+  processPaymentWithItems: async (paymentId, selectedItems) => {
+    try {
+      const response = await api.post('/payment/process-with-items', {
+        paymentId,
+        selectedItems,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao processar o pagamento:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Obtém um resumo do valor total e a contagem de itens pagos para um pagamento.
+   * Rota: GET /payment/:paymentId/summary
+   */
+  getPaymentSummary: async (paymentId) => {
+    try {
+      const response = await api.get(`/payment/${paymentId}/summary`);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar o resumo do pagamento:', error);
+      throw error;
+    }
+  },
 };
 
 export default Payment;

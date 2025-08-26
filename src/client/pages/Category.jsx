@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -13,24 +14,21 @@ import {
   DialogContentText,
   DialogActions,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import CategoryService from '../services/Category';
-import { toast } from 'react-toastify';
-import CustomButton from '../components/common/CustomButton';
-import CategoryCard from '../components/card/CategoryCard';
+import { useTheme } from '@mui/material/styles';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
-import { useTheme } from '@mui/material/styles';
+import { toast } from 'react-toastify';
 import { useResponsive } from '../hooks/useResponsive';
+import CategoryService from '../services/Category';
+import CustomButton from '../components/common/CustomButton';
+import CategoryCard from '../components/card/CategoryCard';
 
 const Category = () => {
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expanded, setExpanded] = useState('all-categories');
   const [error, setError] = useState(null);
-
-  // Estados para o modal de confirmação
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [categoryIdToDelete, setCategoryIdToDelete] = useState(null);
 
@@ -66,7 +64,6 @@ const Category = () => {
     navigate(`/category/edit/${id}`);
   };
 
-  // Funções para controlar o modal de confirmação
   const handleOpenDeleteDialog = (id) => {
     setCategoryIdToDelete(id);
     setOpenDeleteDialog(true);
@@ -78,11 +75,11 @@ const Category = () => {
   };
 
   const handleConfirmDelete = async () => {
-    handleCloseDeleteDialog(); // Fecha o modal
+    handleCloseDeleteDialog();
     if (categoryIdToDelete) {
       try {
         await CategoryService.remove(categoryIdToDelete);
-        fetchCategories(); // Recarrega a lista de categorias
+        fetchCategories();
         toast.success('Categoria excluída com sucesso!');
       } catch (err) {
         console.error('Erro ao excluir categoria:', err);
@@ -131,9 +128,7 @@ const Category = () => {
           Adicionar Categoria
         </CustomButton>
       </Box>
-
       <Divider sx={{ my: 2, borderColor: theme.palette.divider }} />
-
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
           <CircularProgress />
@@ -187,8 +182,6 @@ const Category = () => {
           </AccordionDetails>
         </Accordion>
       )}
-
-      {/* Modal de confirmação de exclusão */}
       <Dialog
         open={openDeleteDialog}
         onClose={handleCloseDeleteDialog}

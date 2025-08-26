@@ -44,11 +44,11 @@ router.get('/list-all-team-events', authenticateToken, async (req, res) => {
 
 /**
  * GET /event/list-all-events-athletics
- * Lista todos os eventos aos quais o atleta está associado.
+ * Lista todos os eventos aos quais o atleta está associado e que correspondem às suas categorias.
  */
 router.get('/list-all-events-athletics', authenticateToken, async (req, res) => {
   try {
-    const { userId, role } = req.user;
+    const { id: userId, role } = req.user;
 
     if (role !== 'ATHLETE') {
       return res
@@ -56,9 +56,51 @@ router.get('/list-all-events-athletics', authenticateToken, async (req, res) => 
         .json({ message: 'Acesso negado. Apenas atletas podem listar seus eventos.' });
     }
 
+    // 1. Buscar o ID do atleta associado ao userId
+    const athlete = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        athlete: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    // Se não for encontrado, retorne uma lista vazia
+    if (!athlete || !athlete.athlete) {
+      return res.status(200).json([]);
+    }
+
+    const athleteId = athlete.athlete.id;
+
+    // 2. Buscar todas as categorias do atleta usando a tabela de junção
+    const athleteCategories = await prisma.categoryAthlete.findMany({
+      where: { athleteId: athleteId },
+      select: {
+        categoryId: true,
+      },
+    });
+
+    const athleteCategoryIds = athleteCategories.map((cat) => cat.categoryId);
+
+    // Se não houver categorias, retorne uma lista vazia
+    if (athleteCategoryIds.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    // 3. Listar as confirmações do atleta, filtrando pelos eventos que têm uma de suas categorias
     const myConfirmations = await prisma.confirmationUser.findMany({
       where: {
         userId: userId,
+        confirmation: {
+          event: {
+            categoryId: {
+              in: athleteCategoryIds, // Filtra por várias categorias
+            },
+          },
+        },
       },
       include: {
         confirmation: {
@@ -426,6 +468,158 @@ router.patch('/toggle-confirmation/:confirmationId', authenticateToken, async (r
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Erro ao alternar a presença.' });
+  }
+});
+
+/**
+ * POST /event/confirm-presence/:eventId
+ * Confirma a presença do atleta em um evento.
+ */
+router.post('/confirm-presence/:eventId', authenticateToken, async (req, res) => {
+  try {
+    const { eventId } = req.params;
+
+    const { id, role } = req.user;
+    const parsedEventId = parseInt(eventId);
+
+    if (role !== 'ATHLETE') {
+      return res
+        .status(403)
+        .json({ message: 'Acesso negado. Apenas atletas podem confirmar presença.' });
+    }
+
+    // 1. Encontre a ID da Confirmação para este evento
+    const confirmation = await prisma.confirmation.findFirst({
+      where: {
+        eventId: parsedEventId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!confirmation) {
+      return res.status(404).json({ message: 'Confirmação para este evento não encontrada.' });
+    }
+
+    const confirmationId = confirmation.id;
+
+    // 2. Tente encontrar o registro de confirmação para o usuário.
+    const existingConfirmationUser = await prisma.confirmationUser.findUnique({
+      where: {
+        confirmationId_userId: {
+          confirmationId: confirmationId,
+          userId: id,
+        },
+      },
+    });
+
+    let updatedConfirmationUser;
+
+    // 3. Verifique se o registro existe.
+    if (existingConfirmationUser) {
+      // Se existir, atualize o status.
+      updatedConfirmationUser = await prisma.confirmationUser.update({
+        where: {
+          confirmationId_userId: {
+            confirmationId: confirmationId,
+            userId: id,
+          },
+        },
+        data: {
+          status: true,
+          confirmedAt: new Date(),
+        },
+      });
+    } else {
+      // Se não existir, crie um novo registro.
+      updatedConfirmationUser = await prisma.confirmationUser.create({
+        data: {
+          confirmationId: confirmationId,
+          userId: id,
+          status: true,
+          confirmedAt: new Date(),
+        },
+      });
+    }
+
+    res.status(200).json({
+      message: 'Presença confirmada com sucesso.',
+      confirmation: updatedConfirmationUser,
+    });
+  } catch (err) {
+    console.error('Um erro inesperado ocorreu:', err);
+    res.status(500).json({ message: 'Erro ao confirmar presença.' });
+  }
+});
+
+/**
+ * GET /api/v1/event/:eventId/analytics
+ * Retorna as métricas de análise de um evento.
+ */
+router.get('/:eventId/analytics', authenticateToken, async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const parsedEventId = parseInt(eventId);
+
+    // 1. Encontrar todos os IDs de confirmação (confirmationId) associados ao evento.
+    const confirmationIds = await prisma.confirmation.findMany({
+      where: {
+        eventId: parsedEventId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    const ids = confirmationIds.map((c) => c.id);
+
+    // Se não houver confirmações, retorne 0 para todas as métricas
+    if (ids.length === 0) {
+      return res.status(200).json({
+        confirmedAthletesCount: 0,
+        totalValueReceived: 0,
+        totalItemsPaid: 0,
+      });
+    }
+
+    // 2. Contar o número de atletas confirmados (baseado nas ConfirmationUser)
+    // Alteração: Use distinct para contar apenas atletas únicos
+    const confirmedAthletes = await prisma.confirmationUser.findMany({
+      where: {
+        confirmationId: { in: ids },
+      },
+      distinct: ['userId'],
+    });
+
+    const confirmedAthletesCount = confirmedAthletes.length;
+
+    // 3. Calcular o valor total recebido e a quantidade de itens pagos
+    const confirmationItems = await prisma.confirmationItem.findMany({
+      where: {
+        confirmationId: { in: ids },
+      },
+      include: {
+        paymentItem: true,
+      },
+    });
+
+    let totalValueReceived = 0;
+    let totalItemsPaid = 0;
+
+    confirmationItems.forEach((item) => {
+      totalValueReceived += item.paymentItem.value * item.quantity;
+      totalItemsPaid += item.quantity;
+    });
+
+    res.status(200).json({
+      confirmedAthletesCount,
+      totalValueReceived,
+      totalItemsPaid,
+    });
+  } catch (err) {
+    console.error('Erro ao buscar analytics do evento:', err);
+    res.status(500).json({ message: 'Erro ao carregar os dados de analytics do evento.' });
   }
 });
 

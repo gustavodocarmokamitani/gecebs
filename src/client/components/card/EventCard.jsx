@@ -65,7 +65,8 @@ const EventCard = ({ event, onDelete }) => {
   return (
     <Card
       sx={{
-        minWidth: isMobile ? 300 : 350,
+        minWidth: isMobile ? 270 : 350,
+        maxWidth: isMobile ? 300 : 350,
         margin: 2,
         borderRadius: '12px',
         backgroundColor: theme.palette.background.paper,

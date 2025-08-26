@@ -43,7 +43,7 @@ router.post('/register-team', async (req, res) => {
           username: username,
           password: hashedPassword,
           email: email,
-          role: 'TEAM_ADMIN',
+          role: 'TEAM',
           team: {
             connect: { email: email },
           },

@@ -21,8 +21,8 @@ const MainLayout = () => {
   const location = useLocation();
 
   // --- Lógica Ajustada para Encontrar a Rota Principal ---
-  const pathSegments = location.pathname.split('/').filter(Boolean);
-  const mainPath = `/${pathSegments[0]}`; // Pega o primeiro segmento da URL (e.g., '/athlete')
+  const pathSegments = location.pathname.split(/[/ -]/).filter(Boolean);
+  const mainPath = `/${pathSegments[0]}`;
 
   const pageInfo = routesConfig[mainPath] || {};
   const pageTitle = pageInfo.title || 'Página Não Encontrada';

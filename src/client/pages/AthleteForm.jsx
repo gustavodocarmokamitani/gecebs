@@ -10,17 +10,17 @@ import {
   FormGroup,
   FormControlLabel,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { toast } from 'react-toastify';
+import { useResponsive } from '../hooks/useResponsive';
+import usePhoneInput from '../hooks/usePhoneInput';
+import Athlete from '../services/Athlete';
+import Category from '../services/Category';
+import Auth from '../services/Auth';
 import CustomInput from '../components/common/CustomInput';
 import CustomButton from '../components/common/CustomButton';
 import CustomCheckbox from '../components/common/CustomCheckbox';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { useTheme } from '@mui/material/styles';
-import { useResponsive } from '../hooks/useResponsive';
-import Athlete from '../services/Athlete';
-import Category from '../services/Category';
-import { toast } from 'react-toastify';
-import usePhoneInput from '../hooks/usePhoneInput';
-import Auth from '../services/Auth';
 
 const AthleteForm = () => {
   const { athleteId } = useParams();
@@ -31,7 +31,6 @@ const AthleteForm = () => {
 
   const isEditing = !!athleteId;
 
-  // Usa um estado local para o telefone, ou ajuste o hook para aceitar um valor inicial
   const { phoneNumber, phoneError, handlePhoneChange } = usePhoneInput();
 
   const [formData, setFormData] = useState({
@@ -65,10 +64,9 @@ const AthleteForm = () => {
             setFormData({
               firstName: athleteToEdit.firstName,
               lastName: athleteToEdit.lastName,
-              federationId: athleteToEdit.federationId || '', // Handle potential nulls
-              confederationId: athleteToEdit.confederationId || '', // Handle potential nulls
+              federationId: athleteToEdit.federationId || '',
+              confederationId: athleteToEdit.confederationId || '',
               birthDate: athleteToEdit.birthDate ? athleteToEdit.birthDate.split('T')[0] : '',
-              // 💡 CORRECTION: Use nullish coalescing to ensure the value is a string, not null.
               shirtNumber: athleteToEdit.shirtNumber ?? '',
               categories: athleteToEdit.categories?.map((cat) => cat.category.id) || [],
             });
@@ -220,11 +218,9 @@ const AthleteForm = () => {
         </Typography>
       </Box>
       <Divider sx={{ my: 2, borderColor: theme.palette.divider }} />
-
       <Typography sx={{ my: 3 }} variant="h6" color="textSecondary">
         Dados do Atleta
       </Typography>
-
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
           <CircularProgress />
@@ -269,7 +265,7 @@ const AthleteForm = () => {
                 required
               />
             </Box>
-            <Box sx={{ width: isMobile ? '100%' : 'calc(50% - 8px)' }}>
+            <Box sx={{ width: '100%' }}>
               <CustomInput
                 label="Telefone"
                 name="phone"
@@ -319,7 +315,6 @@ const AthleteForm = () => {
               />
             </Box>
           </Box>
-
           <FormControl component="fieldset" variant="standard" sx={{ mt: 2 }}>
             <FormLabel component="legend" sx={{ color: theme.palette.text.secondary }}>
               Categorias
@@ -347,7 +342,6 @@ const AthleteForm = () => {
               )}
             </FormGroup>
           </FormControl>
-
           <Box sx={{ mt: 2 }}>
             <CustomButton
               fullWidth

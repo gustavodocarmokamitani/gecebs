@@ -1,5 +1,5 @@
-// src/pages/Manager.jsx
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Typography,
   Divider,
@@ -18,13 +18,12 @@ import { useTheme } from '@mui/material/styles';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
+import { toast } from 'react-toastify';
 import { useResponsive } from '../hooks/useResponsive';
+import ManagerService from '../services/Manager';
 import CustomButton from '../components/common/CustomButton';
 import CustomInput from '../components/common/CustomInput';
 import ManagerCard from '../components/card/ManagerCard';
-import { useNavigate } from 'react-router-dom';
-import ManagerService from '../services/Manager';
-import { toast } from 'react-toastify';
 
 const Manager = () => {
   const theme = useTheme();
@@ -37,8 +36,6 @@ const Manager = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
-
-  // Estados para o modal de confirmação
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [managerIdToDelete, setManagerIdToDelete] = useState(null);
 
@@ -69,7 +66,6 @@ const Manager = () => {
     navigate('/manager/new');
   };
 
-  // Funções para controlar o modal de confirmação
   const handleOpenDeleteDialog = (managerId) => {
     setManagerIdToDelete(managerId);
     setOpenDeleteDialog(true);
@@ -248,7 +244,6 @@ const Manager = () => {
                     <ManagerCard
                       key={manager.id}
                       manager={manager}
-                      // ✅ CORRIGIDO: Passando a função de abrir o diálogo de exclusão
                       onDelete={() => handleOpenDeleteDialog(manager.id)}
                     />
                   ))}
@@ -258,8 +253,6 @@ const Manager = () => {
           );
         })
       )}
-
-      {/* Dialog de confirmação de exclusão */}
       <Dialog
         open={openDeleteDialog}
         onClose={handleCloseDeleteDialog}
