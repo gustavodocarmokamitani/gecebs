@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
 import express from 'express';
-import { errors } from 'celebrate'; // Importe 'errors'
+import { errors } from 'celebrate';
 import http from 'http';
 import routes from './routes/v1/index.js';
 import { securityMiddleware, requestLogger } from './middleware/security.js';
@@ -12,9 +12,8 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.use(cors());
-
 // Middlewares
+app.use(cors());
 app.use(securityMiddleware);
 app.use(requestLogger);
 app.use(express.json());
@@ -26,12 +25,12 @@ app.use('/api/v1', routes);
 const clientDistPath = path.join(__dirname, '../client/dist');
 app.use(express.static(clientDistPath));
 
-// Qualquer rota que não for API cai no React Router
+// Qualquer rota que não for uma API, redireciona para o index.html do React Router
 app.get('*', (req, res) => {
   res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
-// Tratamento de erros do celebrate
+// Tratamento de erros do Celebrate para as rotas da API
 app.use(errors());
 
 // Tratamento de erros genérico
