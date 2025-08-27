@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
 import express from 'express';
-import { errors } from 'celebrate';
+import { errors } from 'celebrate'; // Importe 'errors'
 import http from 'http';
 import routes from './routes/v1/index.js';
 import { securityMiddleware, requestLogger } from './middleware/security.js';
@@ -18,7 +18,6 @@ app.use(cors());
 app.use(securityMiddleware);
 app.use(requestLogger);
 app.use(express.json());
-app.use(errors());
 
 // Rotas da API
 app.use('/api/v1', routes);
@@ -32,7 +31,10 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
-// Error handling
+// Tratamento de erros do celebrate
+app.use(errors());
+
+// Tratamento de erros genérico
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({
