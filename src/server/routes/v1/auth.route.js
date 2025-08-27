@@ -181,7 +181,7 @@ router.get(
   async (req, res) => {
     try {
       const { phone } = req.query;
-
+      console.log('DATABASE_URL lida pelo código:', process.env.DATABASE_URL);
       if (!phone) {
         return res.status(400).json({ message: 'O número de telefone é obrigatório.' });
       }
