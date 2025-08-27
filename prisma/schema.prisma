@@ -1,12 +1,10 @@
-// schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
 
 datasource db {
   provider = "postgresql"
-  url      = "postgresql://postgres:CWaA8n8px66Z4P6Z@db.sgaqpbnngxsghbjbhbwe.supabase.co:5432/postgres"
-}
-
-generator client {
-  provider = "prisma-client-js"
+  url      = env("DATABASE_URL")
 }
 
 model Team {
@@ -18,27 +16,24 @@ model Team {
   image      String?
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
-  users      User[]
   categories Category[]
-  payments   Payment[]
   events     Event[]
+  payments   Payment[]
+  users      User[]
 }
 
 model User {
   id            Int                @id @default(autoincrement())
   username      String             @unique
   password      String
-  role          String             // 'MANAGER' ou 'ATHLETE'
+  role          String
   email         String?
-  
   teamId        Int
-  team          Team               @relation(fields: [teamId], references: [id])
-  
   athlete       Athlete?
-  manager       Manager?
-  
-  payments      PaymentUser[]
   confirmations ConfirmationUser[]
+  manager       Manager?
+  payments      PaymentUser[]
+  team          Team               @relation(fields: [teamId], references: [id])
 }
 
 model Athlete {
@@ -47,154 +42,131 @@ model Athlete {
   lastName        String
   phone           String            @unique
   federationId    String?
-  confederationId String?
   birthDate       DateTime
-  shirtNumber     String?
-  
   userId          Int               @unique
+  shirtNumber     String?
+  confederationId String?
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
   categories      CategoryAthlete[]
 }
 
 model Manager {
-  id          Int                 @id @default(autoincrement())
-  firstName   String
-  lastName    String
-  phone       String              @unique
-  
-  userId      Int                 @unique
-  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  categories  ManagerCategory[]
+  id         Int               @id @default(autoincrement())
+  firstName  String
+  lastName   String
+  phone      String            @unique
+  userId     Int               @unique
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories ManagerCategory[]
 }
 
 model Category {
-  id        Int               @id @default(autoincrement())
-  name      String
-  
-  teamId    Int
-  team      Team              @relation(fields: [teamId], references: [id])
-
-  athletes  CategoryAthlete[]
-  payments  Payment[]
-  events    Event[]
-  managers  ManagerCategory[]
+  id       Int               @id @default(autoincrement())
+  name     String
+  teamId   Int
+  team     Team              @relation(fields: [teamId], references: [id])
+  athletes CategoryAthlete[]
+  events   Event[]
+  managers ManagerCategory[]
+  payments Payment[]
 }
 
 model CategoryAthlete {
   athleteId  Int
-  athlete    Athlete           @relation(fields: [athleteId], references: [id])
   categoryId Int
-  category   Category          @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  
+  athlete    Athlete  @relation(fields: [athleteId], references: [id])
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
   @@id([athleteId, categoryId])
 }
 
 model ManagerCategory {
-  managerId   Int
-  manager     Manager           @relation(fields: [managerId], references: [id], onDelete: Cascade)
-  categoryId  Int
-  category    Category          @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  
+  managerId  Int
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  manager    Manager  @relation(fields: [managerId], references: [id], onDelete: Cascade)
+
   @@id([managerId, categoryId])
 }
 
 model Payment {
-  id         Int               @id @default(autoincrement())
+  id         Int           @id @default(autoincrement())
   name       String
-  value      Float             @default(0)
+  value      Float         @default(0)
   dueDate    DateTime
   pixKey     String
-  
   teamId     Int
-  team       Team              @relation(fields: [teamId], references: [id])
-
-  category   Category          @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   categoryId Int
-  
   eventId    Int?
-  event      Event?            @relation(fields: [eventId], references: [id], onDelete: SetNull)
-  
-  paidBy     PaymentUser[]
+  category   Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  event      Event?        @relation(fields: [eventId], references: [id])
+  team       Team          @relation(fields: [teamId], references: [id])
   items      PaymentItem[]
+  paidBy     PaymentUser[]
 }
 
 model PaymentItem {
-  id         Int                 @id @default(autoincrement())
-  name       String
-  value      Float
-  quantityEnabled Boolean @default(false)
-  
-  paymentId  Int
-  payment    Payment             @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  
+  id                Int                @id @default(autoincrement())
+  name              String
+  value             Float
+  quantityEnabled   Boolean            @default(false)
+  paymentId         Int
   confirmationItems ConfirmationItem[]
+  payment           Payment            @relation(fields: [paymentId], references: [id], onDelete: Cascade)
 }
 
 model PaymentUser {
   paymentId Int
-  payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   userId    Int
-  user      User    @relation(fields: [userId], references: [id])
   paidAt    DateTime?
+  payment   Payment   @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id])
 
   @@id([paymentId, userId])
 }
 
 model Event {
-  id          Int            @id @default(autoincrement())
-  name        String
-  description String?
-  date        DateTime
-  location    String?
-  type        String // 'TRAINING' ou 'CHAMPIONSHIP'
-  
-  teamId      Int
-  team        Team           @relation(fields: [teamId], references: [id])
-
-  categoryId  Int
-  category    Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  
+  id            Int            @id @default(autoincrement())
+  name          String
+  description   String?
+  date          DateTime
+  location      String?
+  type          String
+  teamId        Int
+  categoryId    Int
   confirmations Confirmation[]
+  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  team          Team           @relation(fields: [teamId], references: [id])
   payments      Payment[]
 }
 
 model Confirmation {
-  id         Int                @id @default(autoincrement())
-  createdAt  DateTime           @default(now())
-
-  eventId    Int
-  event      Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  
+  id          Int                @id @default(autoincrement())
+  createdAt   DateTime           @default(now())
+  eventId     Int
+  event       Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
   confirmedBy ConfirmationUser[]
 }
 
 model ConfirmationUser {
   confirmationId Int
-  confirmation   Confirmation     @relation(fields: [confirmationId], references: [id], onDelete: Cascade)
-  
   userId         Int
-  user           User             @relation(fields: [userId], references: [id])
-  
   confirmedAt    DateTime?
   status         Boolean
-  
   confirmedItems ConfirmationItem[]
+  confirmation   Confirmation       @relation(fields: [confirmationId], references: [id], onDelete: Cascade)
+  user           User               @relation(fields: [userId], references: [id])
 
   @@id([confirmationId, userId])
 }
 
 model ConfirmationItem {
-  confirmationId  Int
-  userId          Int
-  
+  confirmationId   Int
+  userId           Int
+  paymentItemId    Int
+  quantity         Int              @default(1)
   confirmationUser ConfirmationUser @relation(fields: [confirmationId, userId], references: [confirmationId, userId], onDelete: Cascade)
-  
-  paymentItemId   Int
-  paymentItem     PaymentItem      @relation(fields: [paymentItemId], references: [id], onDelete: Cascade)
-  
-  quantity        Int @default(1)
+  paymentItem      PaymentItem      @relation(fields: [paymentItemId], references: [id], onDelete: Cascade)
 
   @@id([confirmationId, userId, paymentItemId])
 }
