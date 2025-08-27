@@ -1,45 +1,38 @@
 import 'dotenv/config';
 import path from 'path';
-import { default as cors, default as express } from 'express';
+import { fileURLToPath } from 'url';
+import cors from 'cors';
+import express from 'express';
 import { errors } from 'celebrate';
 import http from 'http';
 import routes from './routes/v1/index.js';
 import { securityMiddleware, requestLogger } from './middleware/security.js';
 
 const app = express();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 app.use(cors());
 
-// Apply security middleware
+// Middlewares
 app.use(securityMiddleware);
 app.use(requestLogger);
 app.use(express.json());
-app.use(express.static('dist'));
 app.use(errors());
-const httpServer = http.createServer(app);
 
-// setup routes
-app.use('/api/v1/', routes);
+// Rotas da API
+app.use('/api/v1', routes);
 
-/**
- * Redirect root URL to the frontend application.
- */
-// app.get('/', (req, res) => {
-//   res.redirect('http://localhost:3000');
-// });
+// Servir frontend buildado (Vite gera em src/client/dist)
+const clientDistPath = path.join(__dirname, '../client/dist');
+app.use(express.static(clientDistPath));
 
-app.get('/', (req, res) => {
-  const host = req.headers.host; // exemplo: "192.168.15.7:3000"
-  res.redirect(`http://${host}`);
+// Qualquer rota que não for API cai no React Router
+app.get('*', (req, res) => {
+  res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
-/**
- * Serve the frontend application for any other route.
- * This is necessary for React Router to work.
- */
-app.get('*', (req, res) => res.sendFile(path.resolve('dist', 'index.html')));
-
-// Improved error handling
+// Error handling
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({
@@ -49,6 +42,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-httpServer.listen(process.env.PORT || 3000, '0.0.0.0', () => {
-  console.log(`Listening on port ${process.env.PORT || 3000}`);
+// Start server
+const httpServer = http.createServer(app);
+const PORT = process.env.PORT || 3000;
+httpServer.listen(PORT, '0.0.0.0', () => {
+  console.log(`Listening on port ${PORT}`);
 });
