@@ -25,14 +25,15 @@ import PaymentService from '../../services/Payment';
 import { toast } from 'react-toastify';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import PaidIcon from '@mui/icons-material/Paid'; // Ícone para valor recebido
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'; // Ícone para itens pagos
+import PaidIcon from '@mui/icons-material/Paid';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 
 const PaymentCard = ({ payment, onEdit, onDelete }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [athletes, setAthletes] = useState([]);
   const [summary, setSummary] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingSummary, setIsLoadingSummary] = useState(true);
+  const [isLoadingAthletes, setIsLoadingAthletes] = useState(false);
   const theme = useTheme();
   const navigate = useNavigate();
 
@@ -45,27 +46,43 @@ const PaymentCard = ({ payment, onEdit, onDelete }) => {
 
   const getBackgroundColor = (index) => {
     return index % 2 === 0 ? '#2c2c2c' : '#050505';
-  };
+  }; // useEffect para carregar o resumo de pagamento imediatamente
+
+  useEffect(() => {
+    if (payment?.id) {
+      const fetchSummary = async () => {
+        setIsLoadingSummary(true);
+        try {
+          const fetchedSummary = await PaymentService.getPaymentSummary(payment.id);
+          setSummary(fetchedSummary);
+        } catch (error) {
+          console.error('Erro ao buscar resumo de pagamento:', error);
+          toast.error('Erro ao carregar o resumo de pagamento.');
+          setSummary(null);
+        } finally {
+          setIsLoadingSummary(false);
+        }
+      };
+      fetchSummary();
+    }
+  }, [payment?.id]); // useEffect para carregar a lista de atletas apenas quando o card for expandido
 
   useEffect(() => {
     if (isExpanded && payment?.id) {
-      const fetchData = async () => {
-        setIsLoading(true);
+      const fetchAthletes = async () => {
+        setIsLoadingAthletes(true);
         try {
           const fetchedAthletes = await PaymentService.getAthletesWithPaymentStatus(payment.id);
-          const fetchedSummary = await PaymentService.getPaymentSummary(payment.id);
           setAthletes(fetchedAthletes);
-          setSummary(fetchedSummary);
         } catch (error) {
-          console.error('Erro ao buscar dados do pagamento:', error);
-          toast.error('Erro ao carregar os dados de pagamento.');
+          console.error('Erro ao buscar dados dos atletas:', error);
+          toast.error('Erro ao carregar a lista de atletas.');
           setAthletes([]);
-          setSummary(null);
         } finally {
-          setIsLoading(false);
+          setIsLoadingAthletes(false);
         }
       };
-      fetchData();
+      fetchAthletes();
     }
   }, [isExpanded, payment?.id]);
 
@@ -105,25 +122,33 @@ const PaymentCard = ({ payment, onEdit, onDelete }) => {
           <Typography variant="p" component="div">
             {payment.name}
           </Typography>
-          <Typography
-            variant="p"
-            color={theme.palette.text.secondary}
-            component="div"
-            sx={{ display: 'flex', alignItems: 'center' }}
-          >
-            <PaidIcon fontSize="small" sx={{ mr: 1, color: theme.palette.success.main }} />
-            Valor Recebido: <br />
-            R$ {summary?.totalValueReceived?.toFixed(2) || '0.00'}
-          </Typography>
-          <Typography
-            variant="p"
-            color={theme.palette.text.secondary}
-            component="div"
-            sx={{ display: 'flex', alignItems: 'center' }}
-          >
-            <ShoppingCartIcon fontSize="small" sx={{ mr: 1, color: theme.palette.primary.main }} />
-            Itens Pagos: {summary?.totalItemsPaid || 0}
-          </Typography>
+          {isLoadingSummary ? (
+            <CircularProgress size={20} />
+          ) : (
+            <>
+              <Typography
+                variant="p"
+                color={theme.palette.text.secondary}
+                component="div"
+                sx={{ display: 'flex', alignItems: 'center' }}
+              >
+                <PaidIcon fontSize="small" sx={{ mr: 1, color: theme.palette.success.main }} />
+                Valor Recebido: <br /> R$ {summary?.totalValueReceived?.toFixed(2) || '0.00'}
+              </Typography>
+              <Typography
+                variant="p"
+                color={theme.palette.text.secondary}
+                component="div"
+                sx={{ display: 'flex', alignItems: 'center' }}
+              >
+                <ShoppingCartIcon
+                  fontSize="small"
+                  sx={{ mr: 1, color: theme.palette.primary.main }}
+                />
+                Itens Pagos: {summary?.totalItemsPaid || 0}
+              </Typography>
+            </>
+          )}
           <Typography variant="p" color={theme.palette.text.secondary} component="div">
             Vencimento: {new Intl.DateTimeFormat('pt-BR').format(new Date(payment.dueDate))}
           </Typography>
@@ -147,7 +172,6 @@ const PaymentCard = ({ payment, onEdit, onDelete }) => {
           </IconButton>
         </Box>
       </Box>
-
       <Collapse in={isExpanded} timeout="auto" unmountOnExit>
         <Box
           sx={{
@@ -195,7 +219,6 @@ const PaymentCard = ({ payment, onEdit, onDelete }) => {
                 ))}
               </List>
             )}
-
             <Typography
               variant="subtitle3"
               fontWeight={600}
@@ -208,7 +231,7 @@ const PaymentCard = ({ payment, onEdit, onDelete }) => {
               Status de Pagamento
             </Typography>
             <Divider sx={{ my: 1, borderColor: theme.palette.divider }} />
-            {isLoading ? (
+            {isLoadingAthletes ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
                 <CircularProgress size={24} />
               </Box>
@@ -254,20 +277,11 @@ const PaymentCard = ({ payment, onEdit, onDelete }) => {
               </Typography>
             )}
           </CardContent>
-
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, my: 2, width: '90%' }}>
-            <CustomButton
-              variant="contained"
-              color="warning"
-              onClick={onEdit} // 2. Chame a prop onEdit
-            >
+            <CustomButton variant="contained" color="warning" onClick={onEdit}>
               Editar
             </CustomButton>
-            <CustomButton
-              variant="contained"
-              color="error"
-              onClick={onDelete} // 2. Chame a prop onDelete
-            >
+            <CustomButton variant="contained" color="error" onClick={onDelete}>
               Apagar
             </CustomButton>
           </Box>

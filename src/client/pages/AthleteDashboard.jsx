@@ -57,8 +57,7 @@ function AthleteDashboard() {
       }));
 
       setEvents(uniqueEvents);
-      setPayments(cleanedPayments); // Usa a nova lista limpa
-      console.log(cleanedPayments); // Agora, o log mostrará um array limpo
+      setPayments(cleanedPayments);
     } catch (err) {
       console.error('Erro ao buscar dados do atleta:', err);
       setError('Erro ao carregar os dados. Tente novamente mais tarde.');

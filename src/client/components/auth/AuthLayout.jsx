@@ -12,7 +12,7 @@ const AuthLayout = ({ page, title, children }) => {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: `${deviceType !== 'desktop' ? 'start' : 'center'}`,
+        justifyContent: `center`,
         minHeight: '100vh',
         bgcolor: '#111317',
         px: 3,

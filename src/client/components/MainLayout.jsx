@@ -37,10 +37,8 @@ const MainLayout = () => {
 
   const pathSegments = location.pathname.split(/[/ -]/).filter(Boolean);
   const mainPath = `/${pathSegments[0]}`;
-  console.log(mainPath);
 
   const pageInfo = allRoutes[mainPath] || {};
-  console.log(pageInfo);
 
   const pageTitle = pageInfo.title || 'Página Não Encontrada';
   const pageIcon = pageInfo.icon;

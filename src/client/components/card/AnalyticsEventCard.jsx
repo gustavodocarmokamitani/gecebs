@@ -45,10 +45,10 @@ const AnalyticsEventCard = ({ event }) => {
       const fetchData = async () => {
         setIsLoading(true);
         try {
-          const fetchedAthletes = await EventService.getConfirmedAthletes(event.id);
-          const fetchedAnalytics = await EventService.getEventAnalytics(event.id);
-          setAthletes(fetchedAthletes);
-          setAnalytics(fetchedAnalytics);
+          // Chamada única para a nova rota combinada
+          const fetchedData = await EventService.getEventAnalytics(event.id);
+          setAthletes(fetchedData.confirmedAthletes);
+          setAnalytics(fetchedData.metrics);
         } catch (error) {
           console.error('Erro ao buscar dados do evento:', error);
           toast.error('Erro ao carregar os dados de analytics.');
@@ -167,15 +167,26 @@ const AnalyticsEventCard = ({ event }) => {
                     primary={`Atletas Confirmados: ${analytics.confirmedAthletesCount}`}
                   />
                 </ListItem>
+                {/* NOVO ListItem para Atletas Pagos */}
                 <ListItem
                   sx={{ backgroundColor: getBackgroundColor(1), borderRadius: '8px', mb: 1 }}
                 >
+                  <PaidIcon sx={{ mr: 2, color: theme.palette.success.main }} />
+                  <ListItemText primary={`Atletas Pagos: ${analytics.paidAthletesCount}`} />
+                </ListItem>
+                {/* O ListItem de Valor Recebido foi alterado para usar getBackgroundColor(2) */}
+                <ListItem
+                  sx={{ backgroundColor: getBackgroundColor(2), borderRadius: '8px', mb: 1 }}
+                >
                   <PaidIcon sx={{ mr: 2, color: theme.palette.warning.main }} />
                   <ListItemText
-                    primary={`Valor Recebido: R$ ${analytics.totalValueReceived.toFixed(2)}`}
+                    primary={`Valor Recebido: R$ ${
+                      analytics?.totalValueReceived?.toFixed(2) ?? '0.00'
+                    }`}
                   />
                 </ListItem>
-                <ListItem sx={{ backgroundColor: getBackgroundColor(2), borderRadius: '8px' }}>
+                {/* O ListItem de Itens Pagos foi alterado para usar getBackgroundColor(3) */}
+                <ListItem sx={{ backgroundColor: getBackgroundColor(3), borderRadius: '8px' }}>
                   <ShoppingCartIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
                   <ListItemText primary={`Itens Pagos: ${analytics.totalItemsPaid}`} />
                 </ListItem>
@@ -218,7 +229,7 @@ const AnalyticsEventCard = ({ event }) => {
                     key={athlete.userId}
                     sx={{
                       width: '250px',
-                      textAlign: 'center',
+                      textAlign: 'start',
                       backgroundColor: getBackgroundColor(index),
                       borderRadius: '8px',
                       marginBottom: '8px',
@@ -231,18 +242,47 @@ const AnalyticsEventCard = ({ event }) => {
                   >
                     <ListItemText
                       primary={`${athlete.firstName} ${athlete.lastName}`}
-                      secondary={athlete.status ? 'Confirmado' : 'Pendente'}
+                      secondary={
+                        <Typography component="span" variant="body2" color="text.secondary">
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                            <Typography component="span" variant="body2" color="text.secondary">
+                              {athlete.status ? 'Confirmado' : 'Pendente'}
+                            </Typography>
+                            <Typography component="span" variant="body2" color="text.secondary">
+                              |
+                            </Typography>
+                            <Typography component="span" variant="body2" color="text.secondary">
+                              {athlete.hasPaid ? 'Pago' : 'Pendente'}
+                            </Typography>
+                          </Box>
+                        </Typography>
+                      }
                     />
-                    <Box
-                      sx={{
-                        color: athlete.status
-                          ? theme.palette.success.main
-                          : theme.palette.warning.main,
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                    >
-                      {athlete.status ? <CheckCircleOutlineIcon /> : <PanoramaFishEyeIcon />}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      {/* Ícone de Confirmação de Evento */}
+                      <Box
+                        sx={{
+                          color: athlete.status
+                            ? theme.palette.success.main
+                            : theme.palette.warning.main,
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {athlete.status ? <CheckCircleOutlineIcon /> : <PanoramaFishEyeIcon />}
+                      </Box>
+                      {/* Ícone de Confirmação de Pagamento */}
+                      <Box
+                        sx={{
+                          color: athlete.hasPaid
+                            ? theme.palette.success.main
+                            : theme.palette.error.main,
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {athlete.hasPaid ? <PaidIcon /> : <PanoramaFishEyeIcon />}
+                      </Box>
                     </Box>
                   </ListItem>
                 ))}

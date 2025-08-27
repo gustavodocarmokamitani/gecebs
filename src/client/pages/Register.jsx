@@ -65,7 +65,6 @@ const Register = () => {
         try {
           // 2. Use o número limpo na chamada da API
           const result = await Auth.checkPhoneExists(phoneToVerify);
-          console.log(result);
 
           if (result.exists) {
             setPhoneServerError('Este telefone já está em uso.');

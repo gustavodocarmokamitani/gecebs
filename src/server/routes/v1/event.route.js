@@ -555,49 +555,87 @@ router.post('/confirm-presence/:eventId', authenticateToken, async (req, res) =>
 
 /**
  * GET /api/v1/event/:eventId/analytics
- * Retorna as métricas de análise de um evento.
+ * Retorna as métricas e a lista de atletas confirmados para um evento específico.
  */
 router.get('/:eventId/analytics', authenticateToken, async (req, res) => {
   try {
     const { eventId } = req.params;
     const parsedEventId = parseInt(eventId);
 
-    // 1. Encontrar todos os IDs de confirmação (confirmationId) associados ao evento.
-    const confirmationIds = await prisma.confirmation.findMany({
+    // -- Lógica para obter a lista de atletas confirmados e pagos --
+    const confirmedUserIdsRaw = await prisma.confirmationUser.findMany({
       where: {
-        eventId: parsedEventId,
+        confirmation: {
+          eventId: parsedEventId,
+        },
+        status: true,
       },
       select: {
-        id: true,
+        userId: true,
       },
     });
 
-    const ids = confirmationIds.map((c) => c.id);
+    const confirmedUserIds = [...new Set(confirmedUserIdsRaw.map((cu) => cu.userId))];
 
-    // Se não houver confirmações, retorne 0 para todas as métricas
-    if (ids.length === 0) {
+    const paidUsers = await prisma.paymentUser.findMany({
+      where: {
+        payment: {
+          eventId: parsedEventId,
+        },
+      },
+      select: {
+        userId: true,
+      },
+    });
+
+    const paidUserIds = new Set(paidUsers.map((pu) => pu.userId));
+
+    // Se não houver atletas confirmados, retorna 0 para todas as métricas
+    if (confirmedUserIds.length === 0) {
       return res.status(200).json({
-        confirmedAthletesCount: 0,
-        totalValueReceived: 0,
-        totalItemsPaid: 0,
+        confirmedAthletes: [],
+        metrics: {
+          confirmedAthletesCount: 0,
+          paidAthletesCount: 0, // Adicionado
+          totalValueReceived: 0,
+          totalItemsPaid: 0,
+        },
       });
     }
 
-    // 2. Contar o número de atletas confirmados (baseado nas ConfirmationUser)
-    // Alteração: Use distinct para contar apenas atletas únicos
-    const confirmedAthletes = await prisma.confirmationUser.findMany({
+    const athletesData = await prisma.user.findMany({
       where: {
-        confirmationId: { in: ids },
+        id: {
+          in: confirmedUserIds,
+        },
       },
-      distinct: ['userId'],
+      select: {
+        id: true,
+        athlete: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
     });
 
-    const confirmedAthletesCount = confirmedAthletes.length;
+    const confirmedAthletes = athletesData.map((user) => ({
+      userId: user.id,
+      firstName: user.athlete.firstName,
+      lastName: user.athlete.lastName,
+      status: true,
+      hasPaid: paidUserIds.has(user.id),
+    }));
 
-    // 3. Calcular o valor total recebido e a quantidade de itens pagos
+    // -- Lógica para obter as métricas de analytics --
     const confirmationItems = await prisma.confirmationItem.findMany({
       where: {
-        confirmationId: { in: ids },
+        confirmationUser: {
+          confirmation: {
+            eventId: parsedEventId,
+          },
+        },
       },
       include: {
         paymentItem: true,
@@ -612,13 +650,18 @@ router.get('/:eventId/analytics', authenticateToken, async (req, res) => {
       totalItemsPaid += item.quantity;
     });
 
+    // -- Retorna a resposta unificada --
     res.status(200).json({
-      confirmedAthletesCount,
-      totalValueReceived,
-      totalItemsPaid,
+      confirmedAthletes,
+      metrics: {
+        confirmedAthletesCount: confirmedUserIds.length,
+        paidAthletesCount: paidUserIds.size, // AQUI está a contagem de atletas pagos
+        totalValueReceived,
+        totalItemsPaid,
+      },
     });
   } catch (err) {
-    console.error('Erro ao buscar analytics do evento:', err);
+    console.error('Erro ao buscar dados de analytics do evento:', err);
     res.status(500).json({ message: 'Erro ao carregar os dados de analytics do evento.' });
   }
 });

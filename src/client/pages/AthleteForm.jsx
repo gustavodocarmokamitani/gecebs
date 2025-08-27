@@ -58,7 +58,6 @@ const AthleteForm = () => {
 
         if (isEditing) {
           const athleteToEdit = await Athlete.getById(athleteId);
-          console.log(athleteToEdit);
 
           if (athleteToEdit) {
             setFormData({

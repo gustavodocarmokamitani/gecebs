@@ -91,7 +91,10 @@ const AthleteCard = ({ athlete, onEdit, onDelete }) => {
             {athlete.phone}
           </Typography>
           <Typography variant="p" color={theme.palette.text.secondary} component="div">
-            {athlete.federationId}
+            N. Federação: {athlete.federationId}
+          </Typography>
+          <Typography variant="p" color={theme.palette.text.secondary} component="div">
+            N. Confederação: {athlete.confederationId}
           </Typography>
           <Typography
             variant="p"
@@ -107,7 +110,7 @@ const AthleteCard = ({ athlete, onEdit, onDelete }) => {
             component="div"
             fontWeight={300}
           >
-            Número do uniforme:
+            Número do uniforme:{' '}
             <span style={{ color: theme.palette.secondary.main, fontWeight: '600' }}>
               {athlete.shirtNumber}
             </span>

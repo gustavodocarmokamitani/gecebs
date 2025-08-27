@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Grid2 as Grid, Link as MuiLink } from '@mui/material';
+import { Grid2 as Grid, Link as MuiLink, IconButton, InputAdornment } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/auth/AuthLayout';
 import CustomInput from '../components/common/CustomInput';
@@ -15,6 +16,11 @@ const Login = () => {
     password: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleTogglePassword = () => {
+    setShowPassword(!showPassword);
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -27,21 +33,15 @@ const Login = () => {
 
     try {
       const { email, password } = formData;
-
-      // Chame a função de login do AuthProvider com as credenciais
       const success = await login({ loginId: email, password });
 
       if (success) {
         toast.success('Login realizado com sucesso!');
         navigate('/');
       } else {
-        // A função `login` já lida com o erro e mostra o toast, então você pode
-        // simplesmente não fazer nada aqui ou adicionar um log.
         console.log('Login falhou (handleLogin)');
       }
     } catch (error) {
-      // O tratamento de erro já é feito dentro da função `login` no AuthProvider,
-      // então este `catch` se torna redundante para a maioria dos casos.
       console.error('Erro inesperado no login:', error);
     } finally {
       setIsLoading(false);
@@ -63,18 +63,33 @@ const Login = () => {
               onChange={handleInputChange}
             />
           </Grid>
+
           <Grid size={12}>
             <CustomInput
               label="Senha"
               placeholder="Digite sua senha"
               id="password"
               name="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               required
               value={formData.password}
               onChange={handleInputChange}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={handleTogglePassword}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
           </Grid>
+
           <Grid size={12}>
             <CustomButton
               variant="contained"
@@ -83,14 +98,16 @@ const Login = () => {
               sx={{ mt: 3, mb: 2, borderRadius: 3 }}
               disabled={isLoading}
             >
-              {isLoading ? 'Entrando...' : 'Login'}
+              {isLoading ? 'Entrando...' : 'Login'}{' '}
             </CustomButton>
           </Grid>
+
           <Grid size={12} sx={{ textAlign: 'center' }}>
             <MuiLink component={RouterLink} to="/forgot-password" variant="body2">
               Esqueci a senha
             </MuiLink>
           </Grid>
+
           <Grid size={12} sx={{ textAlign: 'center' }}>
             <MuiLink component={RouterLink} to="/register" variant="body2">
               Não tem um time? Crie um novo.

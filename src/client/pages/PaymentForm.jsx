@@ -269,6 +269,7 @@ const PaymentForm = () => {
               name="pixKey"
               value={formData.pixKey}
               onChange={handleChange}
+              required
             />
           </Box>
         </Box>
