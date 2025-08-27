@@ -1,20 +1,20 @@
-# Use a imagem oficial do Node.js na versão 20
+# Usa a imagem oficial do Node.js na versão 20
 FROM node:20
 
-# Defina o diretório de trabalho no container
+# Define o diretório de trabalho dentro do container
 WORKDIR /app
 
-# Copie os arquivos de configuração do projeto
+# Copia os arquivos de configuração de dependências primeiro para otimizar o cache
 COPY package.json package-lock.json ./
 
-# Instale as dependências usando npm
-RUN npm install --force
-
-# Copie o restante dos arquivos do projeto
+# Copia todo o restante do projeto
 COPY . .
 
-# Expõe a porta que sua aplicação usa (3000 é a porta padrão)
-EXPOSE 3000
+# Instala as dependências, usando a flag para resolver os conflitos de dependência
+RUN npm install --legacy-peer-deps
 
-# Comando para iniciar o servidor, usando o script 'start' do seu package.json
-CMD [ "npm", "start" ]
+# Expõe a porta que o seu servidor irá rodar, que é a 8080
+EXPOSE 8080
+
+# Comando para iniciar a aplicação, que irá construir o front-end e iniciar o back-end
+CMD ["npm", "start"]
