@@ -11,6 +11,7 @@ const app = express();
 app.use(cors());
 
 // Apply security middleware
+app.set('trust proxy', 1);
 app.use(securityMiddleware);
 app.use(requestLogger);
 app.use(express.json());
