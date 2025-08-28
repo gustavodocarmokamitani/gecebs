@@ -45,10 +45,10 @@ const AnalyticsEventCard = ({ event }) => {
       const fetchData = async () => {
         setIsLoading(true);
         try {
-          // Chamada única para a nova rota combinada
           const fetchedData = await EventService.getEventAnalytics(event.id);
           setAthletes(fetchedData.confirmedAthletes);
           setAnalytics(fetchedData.metrics);
+          console.log(fetchedData);
         } catch (error) {
           console.error('Erro ao buscar dados do evento:', error);
           toast.error('Erro ao carregar os dados de analytics.');

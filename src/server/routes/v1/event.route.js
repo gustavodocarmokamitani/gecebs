@@ -585,10 +585,12 @@ router.get('/:eventId/analytics', authenticateToken, async (req, res) => {
       },
       select: {
         userId: true,
+        paidAt: true,
       },
     });
 
-    const paidUserIds = new Set(paidUsers.map((pu) => pu.userId));
+    const paidUserIds = new Set(paidUsers.map((pu) => (pu.paidAt === null ? false : true)));
+    const paidAthletesCount = paidUsers.filter((pu) => pu.paidAt !== null).length;
 
     // Se não houver atletas confirmados, retorna 0 para todas as métricas
     if (confirmedUserIds.length === 0) {
@@ -596,7 +598,7 @@ router.get('/:eventId/analytics', authenticateToken, async (req, res) => {
         confirmedAthletes: [],
         metrics: {
           confirmedAthletesCount: 0,
-          paidAthletesCount: 0, // Adicionado
+          paidAthletesCount: 0,
           totalValueReceived: 0,
           totalItemsPaid: 0,
         },
@@ -625,7 +627,7 @@ router.get('/:eventId/analytics', authenticateToken, async (req, res) => {
       firstName: user.athlete.firstName,
       lastName: user.athlete.lastName,
       status: true,
-      hasPaid: paidUserIds.has(user.id),
+      hasPaid: [...paidUserIds][0],
     }));
 
     // -- Lógica para obter as métricas de analytics --
@@ -650,12 +652,11 @@ router.get('/:eventId/analytics', authenticateToken, async (req, res) => {
       totalItemsPaid += item.quantity;
     });
 
-    // -- Retorna a resposta unificada --
     res.status(200).json({
       confirmedAthletes,
       metrics: {
         confirmedAthletesCount: confirmedUserIds.length,
-        paidAthletesCount: paidUserIds.size, // AQUI está a contagem de atletas pagos
+        paidAthletesCount: paidAthletesCount,
         totalValueReceived,
         totalItemsPaid,
       },
