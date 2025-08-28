@@ -284,13 +284,10 @@ router.get('/list-all-payments-athletics', authenticateToken, async (req, res) =
       where: {
         userId: userId,
         // Filtra pelo evento associado ao pagamento, que por sua vez deve pertencer a uma das categorias do atleta
-        payment: {
-          event: {
-            categoryId: {
-              in: athleteCategoryIds,
-            },
-          },
-        },
+        OR: [
+          { payment: { event: { categoryId: { in: athleteCategoryIds } } } },
+          { payment: { event: null } }, // inclui payments sem evento
+        ],
       },
       include: {
         payment: {
@@ -304,12 +301,12 @@ router.get('/list-all-payments-athletics', authenticateToken, async (req, res) =
           },
         },
       },
-      orderBy: {
-        payment: {
-          dueDate: 'desc',
-        },
-      },
+      orderBy: [
+        { paidAt: 'desc' }, // pagos primeiro, não pagos depois
+        { payment: { dueDate: 'desc' } }, // dentro de cada grupo, mais recentes primeiro
+      ],
     });
+    console.log(myPayments);
 
     res.status(200).json(myPayments);
   } catch (err) {
