@@ -23,21 +23,10 @@ const AthleteCard = ({ athlete, onEdit, onDelete }) => {
   const navigate = useNavigate();
 
   const deviceType = useResponsive();
-  const isMobile = deviceType === 'mobile' || deviceType === 'tablet'; // Função para alternar o estado de expansão
+  const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
 
   const handleExpandClick = () => {
     setIsExpanded(!isExpanded);
-  };
-
-  const categoryLabels = {
-    1: 'Adulto',
-    2: 'Sub-23',
-    3: 'Juvenil',
-    4: 'Junior',
-    5: 'Pré-Junior',
-    6: 'Infantil',
-    7: 'Pré-Infantil',
-    8: 'T-Bol',
   };
 
   const getBackgroundColor = (index) => {
@@ -45,7 +34,6 @@ const AthleteCard = ({ athlete, onEdit, onDelete }) => {
   };
 
   const handleEditClick = () => {
-    // ⚠️ CORRIGIDO: Agora usa a prop 'onEdit' do componente pai
     if (onEdit) {
       onEdit();
     }
@@ -132,7 +120,6 @@ const AthleteCard = ({ athlete, onEdit, onDelete }) => {
           </IconButton>
         </Box>
       </Box>
-
       <Collapse in={isExpanded} timeout="auto" unmountOnExit>
         <Box
           sx={{
@@ -175,15 +162,12 @@ const AthleteCard = ({ athlete, onEdit, onDelete }) => {
                       m: 0.5,
                     }}
                   >
-                    <ListItemText
-                      primary={categoryLabels[category.categoryId] || 'Categoria desconhecida'}
-                    />
+                    <ListItemText primary={category.category.name || 'Categoria desconhecida'} />
                   </ListItem>
                 ))}
               </List>
             )}
           </CardContent>
-
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, my: 2, width: '90%' }}>
             <CustomButton variant="contained" color="warning" onClick={handleEditClick}>
               Editar

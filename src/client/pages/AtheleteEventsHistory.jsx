@@ -33,7 +33,8 @@ function AthleteEventsHistory() {
     setIsLoading(true);
     setError(null);
     try {
-      const fetchedEvents = await EventService.listMyEvents();
+      const fetchedEvents = await EventService.listMyEventsAll();
+
       // Filtra os eventos únicos com base no ID
       const uniqueEventsMap = new Map();
       fetchedEvents.forEach((event) => {

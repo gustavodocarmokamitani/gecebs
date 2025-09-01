@@ -27,8 +27,9 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PaidIcon from '@mui/icons-material/Paid';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import DoneAllIcon from '@mui/icons-material/DoneAll';
 
-const PaymentCard = ({ payment, onEdit, onDelete }) => {
+const PaymentCard = ({ payment, onEdit, onDelete, onFinalize }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [athletes, setAthletes] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -46,8 +47,9 @@ const PaymentCard = ({ payment, onEdit, onDelete }) => {
 
   const getBackgroundColor = (index) => {
     return index % 2 === 0 ? '#2c2c2c' : '#050505';
-  }; // useEffect para carregar o resumo de pagamento imediatamente
+  };
 
+  // useEffect para carregar o resumo de pagamento imediatamente
   useEffect(() => {
     if (payment?.id) {
       const fetchSummary = async () => {
@@ -65,8 +67,9 @@ const PaymentCard = ({ payment, onEdit, onDelete }) => {
       };
       fetchSummary();
     }
-  }, [payment?.id]); // useEffect para carregar a lista de atletas apenas quando o card for expandido
+  }, [payment?.id]);
 
+  // useEffect para carregar a lista de atletas apenas quando o card for expandido
   useEffect(() => {
     if (isExpanded && payment?.id) {
       const fetchAthletes = async () => {
@@ -85,6 +88,10 @@ const PaymentCard = ({ payment, onEdit, onDelete }) => {
       fetchAthletes();
     }
   }, [isExpanded, payment?.id]);
+
+  // Condicional para desabilitar botões
+  const isFinalized = payment.isFinalized; // 👈 Assumindo que o `payment` terá o campo `isFinalized`
+  const actionButtonsDisabled = isFinalized;
 
   return (
     <Card
@@ -122,7 +129,14 @@ const PaymentCard = ({ payment, onEdit, onDelete }) => {
           <Typography variant="p" component="div">
             {payment.name}
           </Typography>
-          {isLoadingSummary ? (
+          {isFinalized ? ( // 👈 Mensagem de finalizado
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <DoneAllIcon fontSize="small" sx={{ color: theme.palette.success.main }} />
+              <Typography variant="body2" color={theme.palette.success.main}>
+                Finalizado
+              </Typography>
+            </Box>
+          ) : isLoadingSummary ? (
             <CircularProgress size={20} />
           ) : (
             <>
@@ -278,10 +292,29 @@ const PaymentCard = ({ payment, onEdit, onDelete }) => {
             )}
           </CardContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, my: 2, width: '90%' }}>
-            <CustomButton variant="contained" color="warning" onClick={onEdit}>
+            {!isFinalized && ( // 👈 Renderiza o botão "Finalizar" apenas se não estiver finalizado
+              <CustomButton
+                variant="contained"
+                color="success"
+                onClick={() => onFinalize(payment.id)}
+              >
+                Finalizar Pagamento
+              </CustomButton>
+            )}
+            <CustomButton
+              variant="contained"
+              color="warning"
+              onClick={onEdit}
+              disabled={actionButtonsDisabled} // 👈 Desabilita o botão se o pagamento for finalizado
+            >
               Editar
             </CustomButton>
-            <CustomButton variant="contained" color="error" onClick={onDelete}>
+            <CustomButton
+              variant="contained"
+              color="error"
+              onClick={onDelete}
+              disabled={actionButtonsDisabled} // 👈 Desabilita o botão se o pagamento for finalizado
+            >
               Apagar
             </CustomButton>
           </Box>

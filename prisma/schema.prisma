@@ -95,6 +95,7 @@ model Payment {
   value      Float         @default(0)
   dueDate    DateTime
   pixKey     String
+  isFinalized  Boolean       @default(false)
   teamId     Int
   categoryId Int
   eventId    Int?
@@ -132,6 +133,7 @@ model Event {
   date          DateTime
   location      String?
   type          String
+   isFinalized  Boolean       @default(false)
   teamId        Int
   categoryId    Int
   confirmations Confirmation[]

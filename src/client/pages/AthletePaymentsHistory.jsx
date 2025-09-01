@@ -33,7 +33,8 @@ function AthletePaymentsHistory() {
     setIsLoading(true);
     setError(null);
     try {
-      const paymentsResponse = await PaymentService.listMyPayments();
+      const paymentsResponse = await PaymentService.listMyPaymentsAll();
+      console.log(paymentsResponse);
 
       // Mapeia e limpa a estrutura de dados
       const uniquePaymentsMap = new Map();
@@ -179,8 +180,15 @@ function AthletePaymentsHistory() {
               <Box
                 sx={{
                   display: 'flex',
-                  flexDirection: 'column',
+                  overflowX: 'auto',
                   gap: 2,
+                  pb: 2,
+                  '&::-webkit-scrollbar': { height: 8 },
+                  '&::-webkit-scrollbar-thumb': {
+                    backgroundColor: theme.palette.primary.main,
+                    borderRadius: 4,
+                  },
+                  alignItems: 'flex-start',
                 }}
               >
                 {groupedPayments[monthYear].map((payment) => (

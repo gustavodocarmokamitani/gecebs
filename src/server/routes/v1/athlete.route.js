@@ -96,7 +96,7 @@ router.get('/list-athletes-without-categories', authenticateToken, async (req, r
 
 /**
  * POST /create-athlete
- * Cria um novo usuário (atleta) para o time.
+ * Cria um novo usuário (atleta) e o associa a pagamentos existentes.
  */
 router.post('/create-athlete', authenticateToken, async (req, res) => {
   try {
@@ -107,11 +107,9 @@ router.post('/create-athlete', authenticateToken, async (req, res) => {
       birthDate,
       federationId,
       confederationId,
-      houseNumber,
+      shirtNumber,
       categories,
-      shirtNumber, // 👈 Adicionando shirtNumber
     } = req.body;
-
     const { teamId, role } = req.user;
 
     if (role !== 'MANAGER' && role !== 'TEAM') {
@@ -134,7 +132,6 @@ router.post('/create-athlete', authenticateToken, async (req, res) => {
     }
 
     const username = phone;
-
     const existingUser = await prisma.user.findUnique({
       where: { username: username },
     });
@@ -160,8 +157,7 @@ router.post('/create-athlete', authenticateToken, async (req, res) => {
             birthDate: new Date(birthDate),
             federationId,
             confederationId,
-            houseNumber,
-            shirtNumber, // 👈 Adicionando shirtNumber
+            shirtNumber,
             categories: {
               createMany: {
                 data: categories.map((categoryId) => ({ categoryId })),
@@ -182,6 +178,33 @@ router.post('/create-athlete', authenticateToken, async (req, res) => {
         },
       },
     });
+
+    // Lógica para associar o novo atleta a pagamentos existentes
+    const paymentUsersToCreate = [];
+    for (const categoryId of categories) {
+      const existingPayments = await prisma.payment.findMany({
+        where: {
+          categoryId: categoryId,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      existingPayments.forEach((payment) => {
+        paymentUsersToCreate.push({
+          paymentId: payment.id,
+          userId: newAthlete.id,
+        });
+      });
+    }
+
+    if (paymentUsersToCreate.length > 0) {
+      await prisma.paymentUser.createMany({
+        data: paymentUsersToCreate,
+        skipDuplicates: true,
+      });
+    }
 
     res.status(201).json({
       message: 'Atleta criado com sucesso. Senha temporária: ' + genericPassword,
@@ -208,9 +231,8 @@ router.patch('/update-athlete/:id', authenticateToken, async (req, res) => {
       birthDate,
       federationId,
       confederationId,
-      houseNumber,
       shirtNumber,
-      categories, // 👈 Alterado para `categories` para corresponder ao front-end
+      categories,
     } = req.body;
 
     if (role !== 'MANAGER' && role !== 'TEAM') {
@@ -226,7 +248,77 @@ router.patch('/update-athlete/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'Atleta não encontrado no seu time.' });
     }
 
+    // Usamos uma transação para garantir que as operações de atualização sejam atômicas.
     const result = await prisma.$transaction(async (prisma) => {
+      // Passo 1: Obter as categorias atuais e as categorias enviadas
+      const oldCategories = await prisma.categoryAthlete.findMany({
+        where: { athleteId: Number(id) },
+        select: { categoryId: true },
+      });
+      const oldCategoryIds = oldCategories.map((c) => c.categoryId);
+      const newCategoryIds = categories.map(Number);
+
+      // Passo 2: Excluir associações de pagamentos que não são mais relevantes
+      const removedCategoryIds = oldCategoryIds.filter((catId) => !newCategoryIds.includes(catId));
+      if (removedCategoryIds.length > 0) {
+        const paymentsToRemove = await prisma.payment.findMany({
+          where: {
+            categoryId: { in: removedCategoryIds },
+          },
+          select: {
+            id: true,
+          },
+        });
+        const paymentIdsToRemove = paymentsToRemove.map((p) => p.id);
+
+        if (paymentIdsToRemove.length > 0) {
+          await prisma.paymentUser.deleteMany({
+            where: {
+              paymentId: { in: paymentIdsToRemove },
+              userId: athlete.userId,
+            },
+          });
+        }
+      }
+
+      // Passo 3: Adicionar novas associações de pagamentos
+      const addedCategoryIds = newCategoryIds.filter((catId) => !oldCategoryIds.includes(catId));
+      if (addedCategoryIds.length > 0) {
+        const paymentsToAdd = await prisma.payment.findMany({
+          where: {
+            categoryId: { in: addedCategoryIds },
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        const paymentUsersToAdd = paymentsToAdd.map((p) => ({
+          paymentId: p.id,
+          userId: athlete.userId,
+        }));
+
+        if (paymentUsersToAdd.length > 0) {
+          await prisma.paymentUser.createMany({
+            data: paymentUsersToAdd,
+            skipDuplicates: true,
+          });
+        }
+      }
+
+      // Passo 4: Atualizar os dados do atleta e as associações de categoria
+      await prisma.categoryAthlete.deleteMany({
+        where: { athleteId: Number(id) },
+      });
+      if (categories.length > 0) {
+        await prisma.categoryAthlete.createMany({
+          data: categories.map((categoryId) => ({
+            athleteId: Number(id),
+            categoryId,
+          })),
+        });
+      }
+
       const updatedAthlete = await prisma.athlete.update({
         where: { id: Number(id) },
         data: {
@@ -236,26 +328,11 @@ router.patch('/update-athlete/:id', authenticateToken, async (req, res) => {
           birthDate: birthDate ? new Date(birthDate) : undefined,
           federationId,
           confederationId,
-          houseNumber,
           shirtNumber,
+          user: phone ? { update: { username: phone } } : undefined, // Atualiza o username do User
         },
       });
 
-      if (categories) {
-        await prisma.categoryAthlete.deleteMany({
-          where: { athleteId: Number(id) },
-        });
-
-        if (categories.length > 0) {
-          const newAssociations = categories.map((categoryId) => ({
-            athleteId: Number(id),
-            categoryId: categoryId,
-          }));
-          await prisma.categoryAthlete.createMany({
-            data: newAssociations,
-          });
-        }
-      }
       return updatedAthlete;
     });
 

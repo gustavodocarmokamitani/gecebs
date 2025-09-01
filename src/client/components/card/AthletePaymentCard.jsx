@@ -6,6 +6,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useNavigate } from 'react-router-dom';
+import DoneAllIcon from '@mui/icons-material/DoneAll';
 
 const AthletePaymentCard = ({ payment, onConfirmPayment }) => {
   const theme = useTheme();
@@ -76,16 +77,29 @@ const AthletePaymentCard = ({ payment, onConfirmPayment }) => {
           <Typography
             variant="body2"
             color="text.secondary"
-            sx={{ display: 'flex', alignItems: 'center', mt: 2 }}
+            sx={{ display: 'flex', alignItems: 'center', mt: 1 }}
             component="div"
           >
-            Status: {isPaid ? 'Pago' : 'Pendente'}
+            Pagamento: {isPaid ? 'Pago' : 'Pendente'}
             <Box component="span" sx={{ ml: 1 }}>
               {isPaid ? (
                 <CheckCircleIcon color="success" sx={{ fontSize: 20 }} />
               ) : (
                 <AccessTimeIcon color="warning" sx={{ fontSize: 20 }} />
               )}
+            </Box>
+          </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ display: 'flex', alignItems: 'center', mt: 1 }}
+            component="div"
+          >
+            Status: {payment.isFinalized ? 'Finalizado' : 'Aberto'}
+            <Box component="span" sx={{ ml: 1 }}>
+              {payment.isFinalized ? (
+                <DoneAllIcon fontSize="small" sx={{ color: theme.palette.success.main }} />
+              ) : null}
             </Box>
           </Typography>
         </CardContent>

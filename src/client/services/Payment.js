@@ -161,6 +161,16 @@ const Payment = {
     }
   },
 
+  listMyPaymentsAll: async () => {
+    try {
+      const response = await api.get('/payment/list-all-payments-athletics-all');
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao listar os pagamentos do atleta:', error);
+      throw error;
+    }
+  },
+
   // ✅ Rota para buscar detalhes de um pagamento específico
   getPaymentDetails: async (paymentId) => {
     try {
@@ -196,6 +206,20 @@ const Payment = {
       return response.data;
     } catch (error) {
       console.error('Erro ao buscar o resumo do pagamento:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Finaliza um pagamento, tornando-o não-editável.
+   * Rota: PATCH /payment/finalize/:id
+   */
+  finalizePayment: async (paymentId) => {
+    try {
+      const response = await api.patch(`/payment/finalize/${paymentId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao finalizar o pagamento:', error);
       throw error;
     }
   },

@@ -11,7 +11,7 @@ const prisma = new PrismaClient();
 
 /**
  * GET /event/list-all-team-events
- * Lista todos os eventos criados para um time.
+ * Lista todos os eventos criados para um time. Rota para o Gerente
  */
 router.get('/list-all-team-events', authenticateToken, async (req, res) => {
   try {
@@ -26,6 +26,39 @@ router.get('/list-all-team-events', authenticateToken, async (req, res) => {
     const events = await prisma.event.findMany({
       where: {
         teamId: teamId,
+      },
+      orderBy: {
+        date: 'desc',
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    res.status(200).json(events);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao listar os eventos do time.' });
+  }
+});
+/**
+ * GET /event/list-all-team-events
+ * Lista todos os eventos criados para um time. Rota para o Atletas
+ */
+router.get('/list-all-team-events-not-finalized', authenticateToken, async (req, res) => {
+  try {
+    const { teamId, role } = req.user;
+
+    if (role !== 'MANAGER' && role !== 'TEAM') {
+      return res.status(403).json({
+        message: 'Acesso negado. Apenas managers e equipes podem listar todos os eventos do time.',
+      });
+    }
+
+    const events = await prisma.event.findMany({
+      where: {
+        teamId: teamId,
+        isFinalized: false,
       },
       orderBy: {
         date: 'desc',
@@ -96,8 +129,96 @@ router.get('/list-all-events-athletics', authenticateToken, async (req, res) => 
         userId: userId,
         confirmation: {
           event: {
+            isFinalized: false,
             categoryId: {
-              in: athleteCategoryIds, // Filtra por várias categorias
+              in: athleteCategoryIds,
+            },
+          },
+        },
+      },
+      include: {
+        confirmation: {
+          include: {
+            event: true,
+          },
+        },
+      },
+      orderBy: {
+        confirmation: {
+          event: {
+            date: 'desc',
+          },
+        },
+      },
+    });
+
+    const myEvents = myConfirmations.map((conf) => ({
+      ...conf.confirmation.event,
+      confirmedAt: conf.confirmedAt,
+    }));
+
+    res.status(200).json(myEvents);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao listar os eventos do atleta.' });
+  }
+});
+/**
+ * GET /event/list-all-events-athletics
+ * Lista todos os eventos aos quais o atleta está associado e que correspondem às suas categorias.
+ */
+router.get('/list-all-events-athletics-all', authenticateToken, async (req, res) => {
+  try {
+    const { id: userId, role } = req.user;
+
+    if (role !== 'ATHLETE') {
+      return res
+        .status(403)
+        .json({ message: 'Acesso negado. Apenas atletas podem listar seus eventos.' });
+    }
+
+    // 1. Buscar o ID do atleta associado ao userId
+    const athlete = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        athlete: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    // Se não for encontrado, retorne uma lista vazia
+    if (!athlete || !athlete.athlete) {
+      return res.status(200).json([]);
+    }
+
+    const athleteId = athlete.athlete.id;
+
+    // 2. Buscar todas as categorias do atleta usando a tabela de junção
+    const athleteCategories = await prisma.categoryAthlete.findMany({
+      where: { athleteId: athleteId },
+      select: {
+        categoryId: true,
+      },
+    });
+
+    const athleteCategoryIds = athleteCategories.map((cat) => cat.categoryId);
+
+    // Se não houver categorias, retorne uma lista vazia
+    if (athleteCategoryIds.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    // 3. Listar as confirmações do atleta, filtrando pelos eventos que têm uma de suas categorias
+    const myConfirmations = await prisma.confirmationUser.findMany({
+      where: {
+        userId: userId,
+        confirmation: {
+          event: {
+            categoryId: {
+              in: athleteCategoryIds,
             },
           },
         },
@@ -352,6 +473,62 @@ router.patch('/update/:id', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Erro ao atualizar o evento.' });
+  }
+});
+
+/**
+ * PATCH /event/finalize/:id
+ * Finaliza um evento, marcando-o como `isFinalized: true`.
+ */
+router.patch('/finalize/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { teamId, role } = req.user;
+
+    // Apenas gerentes podem finalizar eventos
+    if (role !== 'MANAGER' && role !== 'TEAM') {
+      return res
+        .status(403)
+        .json({ message: 'Acesso negado. Apenas gerentes podem finalizar eventos.' });
+    }
+
+    const eventId = parseInt(id);
+
+    const existingEvent = await prisma.event.findUnique({
+      where: {
+        id: eventId,
+      },
+    });
+
+    if (!existingEvent || existingEvent.teamId !== teamId) {
+      return res
+        .status(404)
+        .json({ message: 'Evento não encontrado ou não pertence à sua equipe.' });
+    }
+
+    // Impede a finalização se o evento já estiver finalizado
+    if (existingEvent.isFinalized) {
+      return res
+        .status(409) // 409 Conflict
+        .json({ message: 'Este evento já foi finalizado.' });
+    }
+
+    const finalizedEvent = await prisma.event.update({
+      where: {
+        id: eventId,
+      },
+      data: {
+        isFinalized: true,
+      },
+    });
+
+    res.status(200).json({
+      message: 'Evento finalizado com sucesso.',
+      event: finalizedEvent,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao finalizar o evento.' });
   }
 });
 

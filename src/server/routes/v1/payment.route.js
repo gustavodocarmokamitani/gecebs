@@ -285,6 +285,90 @@ router.get('/list-all-payments-athletics', authenticateToken, async (req, res) =
         userId: userId,
         // Filtra pelo evento associado ao pagamento, que por sua vez deve pertencer a uma das categorias do atleta
         OR: [
+          { payment: { isFinalized: false, event: { categoryId: { in: athleteCategoryIds } } } },
+          { payment: { event: null } }, // inclui payments sem evento
+        ],
+      },
+      include: {
+        payment: {
+          select: {
+            id: true,
+            name: true,
+            value: true,
+            dueDate: true,
+            pixKey: true,
+            items: true,
+          },
+        },
+      },
+      orderBy: [
+        { paidAt: 'desc' }, // pagos primeiro, não pagos depois
+        { payment: { dueDate: 'desc' } }, // dentro de cada grupo, mais recentes primeiro
+      ],
+    });
+    console.log(myPayments);
+
+    res.status(200).json(myPayments);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao listar os pagamentos do atleta.' });
+  }
+});
+
+/**
+ * GET /payment/list-all-payments-athletics
+ * Lista todos os pagamentos de um atleta, filtrados por sua categoria. Para atletas
+ */
+router.get('/list-all-payments-athletics-all', authenticateToken, async (req, res) => {
+  try {
+    const { id: userId, role } = req.user;
+
+    if (role !== 'ATHLETE') {
+      return res
+        .status(403)
+        .json({ message: 'Acesso negado. Apenas atletas podem listar seus pagamentos.' });
+    }
+
+    // 1. Buscar o ID do atleta associado ao userId
+    const athlete = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        athlete: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    // Se não for encontrado, retorne uma lista vazia
+    if (!athlete || !athlete.athlete) {
+      return res.status(200).json([]);
+    }
+
+    const athleteId = athlete.athlete.id;
+
+    // 2. Buscar todas as categorias do atleta usando a tabela de junção
+    const athleteCategories = await prisma.categoryAthlete.findMany({
+      where: { athleteId: athleteId },
+      select: {
+        categoryId: true,
+      },
+    });
+
+    const athleteCategoryIds = athleteCategories.map((cat) => cat.categoryId);
+
+    // Se não houver categorias, retorne uma lista vazia
+    if (athleteCategoryIds.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    // 3. Listar os pagamentos do atleta, filtrando pelos pagamentos que têm uma de suas categorias
+    const myPayments = await prisma.paymentUser.findMany({
+      where: {
+        userId: userId,
+        // Filtra pelo evento associado ao pagamento, que por sua vez deve pertencer a uma das categorias do atleta
+        OR: [
           { payment: { event: { categoryId: { in: athleteCategoryIds } } } },
           { payment: { event: null } }, // inclui payments sem evento
         ],
@@ -298,6 +382,7 @@ router.get('/list-all-payments-athletics', authenticateToken, async (req, res) =
             dueDate: true,
             pixKey: true,
             items: true,
+            isFinalized: true,
           },
         },
       },
@@ -371,6 +456,62 @@ router.post('/create-payment', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Erro ao criar o pagamento.' });
+  }
+});
+
+/**
+ * PATCH /payment/finalize/:id
+ * Finaliza um pagamento, tornando-o não-editável.
+ */
+router.patch('/finalize/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { teamId, role } = req.user;
+
+    // Verificação de permissão: Apenas managers ou equipes podem finalizar pagamentos.
+    if (role !== 'MANAGER' && role !== 'TEAM') {
+      return res
+        .status(403)
+        .json({ message: 'Acesso negado. Apenas managers ou equipes podem finalizar pagamentos.' });
+    }
+
+    const paymentId = parseInt(id);
+
+    // 1. Busca o pagamento para verificar se ele pertence ao time do usuário
+    const existingPayment = await prisma.payment.findUnique({
+      where: {
+        id: paymentId,
+      },
+    });
+
+    if (!existingPayment || existingPayment.teamId !== teamId) {
+      return res
+        .status(404)
+        .json({ message: 'Pagamento não encontrado ou não pertence ao seu time.' });
+    }
+
+    // 2. Verifica se o pagamento já foi finalizado
+    if (existingPayment.isFinalized) {
+      return res.status(400).json({ message: 'Este pagamento já está finalizado.' });
+    }
+
+    // 3. Atualiza o pagamento, definindo isFinalized para true
+    const finalizedPayment = await prisma.payment.update({
+      where: {
+        id: paymentId,
+      },
+      data: {
+        isFinalized: true,
+      },
+    });
+
+    res.status(200).json({
+      message: 'Pagamento finalizado com sucesso.',
+      payment: finalizedPayment,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao finalizar o pagamento.' });
   }
 });
 

@@ -11,6 +11,11 @@ import {
   Collapse,
   Divider,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -21,11 +26,14 @@ import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
 import CustomButton from '../common/CustomButton';
 import EventService from '../../services/Event';
 import { toast } from 'react-toastify';
+import DoneAllIcon from '@mui/icons-material/DoneAll';
 
 const EventCard = ({ event, onDelete }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [athletes, setAthletes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false); // Novo estado
+  const [openFinalizeDialog, setOpenFinalizeDialog] = useState(false); // Novo estado
   const theme = useTheme();
   const navigate = useNavigate();
   const deviceType = useResponsive();
@@ -41,6 +49,29 @@ const EventCard = ({ event, onDelete }) => {
 
   const handleEditClick = () => {
     navigate(`/event/edit/${event.id}`);
+  };
+
+  const handleFinalizeEvent = async () => {
+    setOpenFinalizeDialog(false);
+    setIsFinalizing(true);
+    try {
+      await EventService.finalizeEvent(event.id);
+      toast.success('Evento finalizado com sucesso!');
+      navigate(0);
+    } catch (error) {
+      console.error('Erro ao finalizar evento:', error);
+      toast.error('Erro ao finalizar o evento. Tente novamente.');
+    } finally {
+      setIsFinalizing(false);
+    }
+  };
+
+  const handleOpenFinalizeDialog = () => {
+    setOpenFinalizeDialog(true);
+  };
+
+  const handleCloseFinalizeDialog = () => {
+    setOpenFinalizeDialog(false);
   };
 
   useEffect(() => {
@@ -118,6 +149,23 @@ const EventCard = ({ event, onDelete }) => {
             <Typography variant="p" color={theme.palette.text.secondary} component="div">
               {event.description}
             </Typography>
+          ) : null}
+
+          {event.isFinalized ? ( // 👈 Lógica de renderização condicional
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 1,
+                py: 1,
+              }}
+            >
+              <DoneAllIcon fontSize="small" sx={{ color: theme.palette.success.main }} />
+              <Typography variant="body2" color={theme.palette.success.main}>
+                Finalizado
+              </Typography>
+            </Box>
           ) : null}
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -202,9 +250,18 @@ const EventCard = ({ event, onDelete }) => {
             )}
           </CardContent>
 
-          {/* Adicionando os botões de Ação aqui */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, my: 2, width: '90%' }}>
-            <CustomButton variant="contained" color="warning" onClick={handleEditClick}>
+            {!event.isFinalized && (
+              <CustomButton variant="contained" color="success" onClick={handleOpenFinalizeDialog}>
+                {isFinalizing ? <CircularProgress size={24} color="inherit" /> : 'Finalizar Evento'}
+              </CustomButton>
+            )}
+            <CustomButton
+              variant="contained"
+              color="warning"
+              onClick={handleEditClick}
+              disabled={event.isFinalized}
+            >
               Editar
             </CustomButton>
             <CustomButton variant="contained" color="error" onClick={onDelete}>
@@ -213,6 +270,30 @@ const EventCard = ({ event, onDelete }) => {
           </Box>
         </Box>
       </Collapse>
+
+      {/* Diálogo de Confirmação */}
+      <Dialog
+        open={openFinalizeDialog}
+        onClose={handleCloseFinalizeDialog}
+        aria-labelledby="finalize-dialog-title"
+        aria-describedby="finalize-dialog-description"
+      >
+        <DialogTitle id="finalize-dialog-title">Finalizar Evento</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="finalize-dialog-description">
+            Tem certeza que deseja finalizar este evento? Esta ação não pode ser desfeita e impedirá
+            futuras edições e confirmações.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <CustomButton onClick={handleCloseFinalizeDialog} variant="contained">
+            Cancelar
+          </CustomButton>
+          <CustomButton onClick={handleFinalizeEvent} variant="contained" color="success" autoFocus>
+            Confirmar
+          </CustomButton>
+        </DialogActions>
+      </Dialog>
     </Card>
   );
 };

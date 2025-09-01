@@ -7,6 +7,7 @@ import CustomButton from '../common/CustomButton';
 import EventService from '../../services/Event';
 import { toast } from 'react-toastify';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 
 const AthleteEventCard = ({ event, isConfirmed }) => {
   const theme = useTheme();
@@ -76,7 +77,43 @@ const AthleteEventCard = ({ event, isConfirmed }) => {
       </Box>
 
       <Box sx={{ p: 2, pt: 0 }}>
-        {isConfirmed ? (
+        {event.isFinalized ? (
+          // Se o evento estiver finalizado, a lógica é diferente
+          isConfirmed ? (
+            // Se confirmado, mostra "Presença Confirmada"
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: theme.palette.success.main,
+                gap: 1,
+              }}
+            >
+              <CheckCircleOutlineIcon />
+              <Typography variant="body1" component="span">
+                Presença Confirmada
+              </Typography>
+            </Box>
+          ) : (
+            // Se não confirmado, mostra "Evento Finalizado"
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: theme.palette.warning.main,
+                gap: 1,
+              }}
+            >
+              <EventAvailableIcon />
+              <Typography variant="body1" component="span">
+                Evento Finalizado
+              </Typography>
+            </Box>
+          )
+        ) : isConfirmed ? (
+          // Se o evento não estiver finalizado e a presença já estiver confirmada
           <Box
             sx={{
               display: 'flex',
@@ -92,6 +129,7 @@ const AthleteEventCard = ({ event, isConfirmed }) => {
             </Typography>
           </Box>
         ) : (
+          // Se o evento não estiver finalizado e a presença não tiver sido confirmada
           <CustomButton
             variant="contained"
             color="secondary"

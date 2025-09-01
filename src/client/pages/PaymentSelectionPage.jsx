@@ -31,19 +31,21 @@ function PaymentSelectionPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [selectedItems, setSelectedItems] = useState({});
-  const [openConfirmDialog, setOpenConfirmDialog] = useState(false); // Novo estado para o diálogo
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
+  const [pixKeyCopied, setPixKeyCopied] = useState(false);
 
   useEffect(() => {
     const fetchPaymentDetails = async (id) => {
       try {
         const paymentData = await PaymentService.getPaymentDetails(id);
+        console.log(paymentData);
+
         setPayment(paymentData);
         if (paymentData && Array.isArray(paymentData.items)) {
           const initialSelectedItems = {};
           paymentData.items.forEach((item) => {
-            if (item.quantityEnabled) {
-              initialSelectedItems[item.id] = 1;
-            }
+            // Inicializa a quantidade para 1 se for 'quantityEnabled' ou para 0 se não for
+            initialSelectedItems[item.id] = item.quantityEnabled ? 1 : 0;
           });
           setSelectedItems(initialSelectedItems);
         } else {
@@ -78,13 +80,13 @@ function PaymentSelectionPage() {
     if (!payment) return 0;
     let total = 0;
     payment.items?.forEach((item) => {
-      const quantity = selectedItems[item.id] || 0;
+      // Se quantityEnabled for false, a quantidade é sempre 1 para o cálculo
+      const quantity = item.quantityEnabled ? selectedItems[item.id] || 0 : 1;
       total += quantity * item.value;
     });
     return total;
   };
 
-  // Funções para o diálogo de confirmação
   const handleOpenConfirmDialog = () => {
     setOpenConfirmDialog(true);
   };
@@ -93,12 +95,12 @@ function PaymentSelectionPage() {
     setOpenConfirmDialog(false);
   };
 
-  // Funções para copiar a chave PIX
   const handleCopyPixKey = async () => {
     try {
       if (payment?.pixKey) {
         await navigator.clipboard.writeText(payment.pixKey);
         toast.success('Chave PIX copiada!');
+        setPixKeyCopied(true);
       } else {
         toast.warn('Chave PIX não disponível.');
       }
@@ -110,7 +112,7 @@ function PaymentSelectionPage() {
 
   const handleConfirmPayment = async () => {
     setIsProcessing(true);
-    handleCloseConfirmDialog(); // Fecha o diálogo antes de processar
+    handleCloseConfirmDialog();
     try {
       await PaymentService.processPaymentWithItems(paymentId, selectedItems);
       toast.success('Pagamento processado com sucesso!');
@@ -139,8 +141,6 @@ function PaymentSelectionPage() {
     );
   }
 
-  const itemsWithQuantity = payment.items.filter((item) => item.quantityEnabled);
-
   return (
     <Box>
       <Typography variant="h6" color="text.primary" gutterBottom>
@@ -148,13 +148,13 @@ function PaymentSelectionPage() {
       </Typography>
       <Divider sx={{ my: 2, borderColor: theme.palette.divider }} />
 
-      {itemsWithQuantity.length > 0 ? (
+      {payment.items.length > 0 ? (
         <Box>
           <Typography variant="h6" gutterBottom color="textSecondary" sx={{ my: 4 }}>
             Selecione a quantidade de itens:
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {itemsWithQuantity.map((item) => (
+            {payment.items.map((item) => (
               <Paper
                 key={item.id}
                 sx={{
@@ -172,18 +172,27 @@ function PaymentSelectionPage() {
                     R$ {item.value.toFixed(2).replace('.', ',')}
                   </Typography>
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <IconButton
-                    onClick={() => handleQuantityChange(item.id, -1)}
-                    disabled={selectedItems[item.id] <= 0}
-                  >
-                    <RemoveCircleOutlineIcon color="primary" />
-                  </IconButton>
-                  <Typography variant="h6">{selectedItems[item.id] || 0}</Typography>
-                  <IconButton onClick={() => handleQuantityChange(item.id, 1)}>
-                    <AddCircleOutlineIcon color="primary" />
-                  </IconButton>
-                </Box>
+                {/* Renderização condicional para os botões */}
+                {item.quantityEnabled ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <IconButton
+                      onClick={() => handleQuantityChange(item.id, -1)}
+                      disabled={selectedItems[item.id] <= 0}
+                    >
+                      <RemoveCircleOutlineIcon color="primary" />
+                    </IconButton>
+                    <Typography variant="h6">{selectedItems[item.id] || 0}</Typography>
+                    <IconButton onClick={() => handleQuantityChange(item.id, 1)}>
+                      <AddCircleOutlineIcon color="primary" />
+                    </IconButton>
+                  </Box>
+                ) : (
+                  <Box>
+                    <Typography variant="h6" fontWeight="bold" color="primary.main">
+                      R$ {item.value.toFixed(2).replace('.', ',')}
+                    </Typography>
+                  </Box>
+                )}
               </Paper>
             ))}
           </Box>
@@ -211,7 +220,7 @@ function PaymentSelectionPage() {
           variant="contained"
           color="primary"
           onClick={handleOpenConfirmDialog}
-          disabled={calculateTotal() <= 0 || isProcessing}
+          disabled={calculateTotal() <= 0 || isProcessing || !pixKeyCopied}
           sx={{ width: '100%' }}
         >
           {isProcessing ? <CircularProgress size={24} color="inherit" /> : 'Confirmar Pagamento'}

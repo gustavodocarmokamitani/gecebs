@@ -1,3 +1,5 @@
+// src/pages/Payment.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -40,6 +42,10 @@ function Payment() {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [paymentIdToDelete, setPaymentIdToDelete] = useState(null);
 
+  // Estados para o diálogo de finalização
+  const [openFinalizeDialog, setOpenFinalizeDialog] = useState(false);
+  const [paymentIdToFinalize, setPaymentIdToFinalize] = useState(null);
+
   const handleAccordionChange = (panel) => (event, isExpanded) => {
     setExpanded(isExpanded ? panel : false);
   };
@@ -81,19 +87,16 @@ function Payment() {
   useEffect(() => {
     const normalizedSearchTerm = searchTerm.trim();
 
-    // Expressões regulares para os formatos de data
     const isDayMonthYear = /^\d{2}\/\d{2}\/\d{4}$/.test(normalizedSearchTerm);
     const isMonthYear = /^\d{2}\/\d{4}$/.test(normalizedSearchTerm);
     const isYear = /^\d{4}$/.test(normalizedSearchTerm);
 
     const filteredPayments = payments.filter((payment) => {
-      // Lógica de busca por nome ou chave PIX (já existente)
       const matchesNameOrPixKey =
         payment.name.toLowerCase().includes(normalizedSearchTerm.toLowerCase()) ||
         (payment.pixKey &&
           payment.pixKey.toLowerCase().includes(normalizedSearchTerm.toLowerCase()));
 
-      // Lógica de busca por data
       const paymentDate = new Date(payment.dueDate);
       const paymentDay = String(paymentDate.getDate()).padStart(2, '0');
       const paymentMonth = String(paymentDate.getMonth() + 1).padStart(2, '0');
@@ -139,6 +142,33 @@ function Payment() {
       } catch (err) {
         console.error('Erro ao excluir pagamento:', err);
         const errorMessage = err.response?.data?.message || 'Erro ao excluir o pagamento.';
+        toast.error(errorMessage);
+      }
+    }
+  };
+
+  // 👇 Nova função para finalizar o pagamento
+  const handleFinalizePayment = async (id) => {
+    setPaymentIdToFinalize(id);
+    setOpenFinalizeDialog(true);
+  };
+
+  const handleCloseFinalizeDialog = () => {
+    setOpenFinalizeDialog(false);
+    setPaymentIdToFinalize(null);
+  };
+
+  const handleConfirmFinalize = async () => {
+    handleCloseFinalizeDialog();
+    if (paymentIdToFinalize) {
+      try {
+        await PaymentService.finalizePayment(paymentIdToFinalize);
+        toast.success('Pagamento finalizado com sucesso!');
+        // Recarregar os pagamentos para refletir o novo estado
+        fetchPayments();
+      } catch (err) {
+        console.error('Erro ao finalizar pagamento:', err);
+        const errorMessage = err.response?.data?.message || 'Erro ao finalizar o pagamento.';
         toast.error(errorMessage);
       }
     }
@@ -261,6 +291,7 @@ function Payment() {
                       payment={payment}
                       onEdit={() => handleEditPayment(payment.id)}
                       onDelete={() => handleOpenDeleteDialog(payment.id)}
+                      onFinalize={() => handleFinalizePayment(payment.id)} // 👈 AQUI!
                     />
                   ))}
                 </Box>
@@ -292,6 +323,37 @@ function Payment() {
           </CustomButton>
           <CustomButton onClick={handleConfirmDelete} variant="contained" color="error" autoFocus>
             Confirmar Exclusão
+          </CustomButton>
+        </DialogActions>
+      </Dialog>
+
+      {/* 👇 Diálogo de confirmação de finalização */}
+      <Dialog
+        open={openFinalizeDialog}
+        onClose={handleCloseFinalizeDialog}
+        aria-labelledby="finalize-dialog-title"
+        aria-describedby="finalize-dialog-description"
+      >
+        <DialogTitle id="finalize-dialog-title">{'Confirmar Finalização'}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="finalize-dialog-description">
+            Ao finalizar este pagamento, ele não poderá mais ser editado ou excluído.
+            <br />
+            <br />
+            Tem certeza que deseja continuar?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <CustomButton onClick={handleCloseFinalizeDialog} variant="contained">
+            Cancelar
+          </CustomButton>
+          <CustomButton
+            onClick={handleConfirmFinalize}
+            variant="contained"
+            color="success"
+            autoFocus
+          >
+            Confirmar Finalização
           </CustomButton>
         </DialogActions>
       </Dialog>

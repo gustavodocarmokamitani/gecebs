@@ -57,6 +57,16 @@ const Event = {
     }
   },
 
+  listMyEventsAll: async () => {
+    try {
+      const response = await api.get('/event/list-all-events-athletics-all');
+
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   /**
    * Busca um evento específico por ID.
    * Rota: GET /event/get-by-id/:id
@@ -82,6 +92,16 @@ const Event = {
       const response = await api.patch(`/event/update/${id}`, updateData);
       return response.data;
     } catch (error) {
+      throw error;
+    }
+  },
+
+  finalizeEvent: async (eventId) => {
+    try {
+      const response = await api.patch(`/event/finalize/${eventId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao finalizar evento:', error);
       throw error;
     }
   },

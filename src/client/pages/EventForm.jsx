@@ -52,7 +52,6 @@ const EventForm = () => {
     try {
       const fetchedCategories = await CategoryService.getAll();
       setCategories(fetchedCategories);
-      console.log(fetchedCategories);
     } catch (err) {
       console.error('Erro ao buscar categorias:', err);
       toast.error('Erro ao carregar as categorias.');
