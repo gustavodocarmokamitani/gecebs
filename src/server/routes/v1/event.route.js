@@ -41,6 +41,37 @@ router.get('/list-all-team-events', authenticateToken, async (req, res) => {
     res.status(500).json({ message: 'Erro ao listar os eventos do time.' });
   }
 });
+
+router.get('/list-all-team-events', authenticateToken, async (req, res) => {
+  try {
+    const { teamId, role } = req.user;
+
+    if (role !== 'MANAGER' && role !== 'TEAM') {
+      return res.status(403).json({
+        message: 'Acesso negado. Apenas managers e equipes podem listar todos os eventos do time.',
+      });
+    }
+
+    const events = await prisma.event.findMany({
+      where: {
+        teamId: teamId,
+        isFinalized: false,
+      },
+      orderBy: {
+        date: 'desc',
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    res.status(200).json(events);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Erro ao listar os eventos do time.' });
+  }
+});
+
 /**
  * GET /event/list-all-team-events
  * Lista todos os eventos criados para um time. Rota para o Atletas
@@ -730,16 +761,13 @@ router.post('/confirm-presence/:eventId', authenticateToken, async (req, res) =>
   }
 });
 
-/**
- * GET /api/v1/event/:eventId/analytics
- * Retorna as métricas e a lista de atletas confirmados para um evento específico.
- */
 router.get('/:eventId/analytics', authenticateToken, async (req, res) => {
   try {
     const { eventId } = req.params;
     const parsedEventId = parseInt(eventId);
 
-    // -- Lógica para obter a lista de atletas confirmados e pagos --
+    // ... (Seu código existente para obter atletas confirmados e pagos) ...
+
     const confirmedUserIdsRaw = await prisma.confirmationUser.findMany({
       where: {
         confirmation: {
@@ -769,7 +797,6 @@ router.get('/:eventId/analytics', authenticateToken, async (req, res) => {
     const paidUserIds = new Set(paidUsers.map((pu) => (pu.paidAt === null ? false : true)));
     const paidAthletesCount = paidUsers.filter((pu) => pu.paidAt !== null).length;
 
-    // Se não houver atletas confirmados, retorna 0 para todas as métricas
     if (confirmedUserIds.length === 0) {
       return res.status(200).json({
         confirmedAthletes: [],
@@ -778,6 +805,7 @@ router.get('/:eventId/analytics', authenticateToken, async (req, res) => {
           paidAthletesCount: 0,
           totalValueReceived: 0,
           totalItemsPaid: 0,
+          itemsPaidByItem: {},
         },
       });
     }
@@ -823,10 +851,19 @@ router.get('/:eventId/analytics', authenticateToken, async (req, res) => {
 
     let totalValueReceived = 0;
     let totalItemsPaid = 0;
+    const itemsPaidByItem = {}; // Novo objeto para armazenar a contagem por item
 
     confirmationItems.forEach((item) => {
       totalValueReceived += item.paymentItem.value * item.quantity;
       totalItemsPaid += item.quantity;
+
+      // Lógica para agrupar e somar por item
+      const itemName = item.paymentItem.name; // Supondo que `paymentItem` tenha um campo `name`
+      if (itemsPaidByItem[itemName]) {
+        itemsPaidByItem[itemName] += item.quantity;
+      } else {
+        itemsPaidByItem[itemName] = item.quantity;
+      }
     });
 
     res.status(200).json({
@@ -836,6 +873,7 @@ router.get('/:eventId/analytics', authenticateToken, async (req, res) => {
         paidAthletesCount: paidAthletesCount,
         totalValueReceived,
         totalItemsPaid,
+        itemsPaidByItem,
       },
     });
   } catch (err) {

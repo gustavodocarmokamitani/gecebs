@@ -17,7 +17,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
 import PaidIcon from '@mui/icons-material/Paid';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'; // Importação alterada para MUI
 import { toast } from 'react-toastify';
 import { useResponsive } from '../../hooks/useResponsive';
 import EventService from '../../services/Event';
@@ -46,6 +46,8 @@ const AnalyticsEventCard = ({ event }) => {
         setIsLoading(true);
         try {
           const fetchedData = await EventService.getEventAnalytics(event.id);
+          console.log(fetchedData.metrics);
+
           setAthletes(fetchedData.confirmedAthletes);
           setAnalytics(fetchedData.metrics);
           console.log(fetchedData);
@@ -167,14 +169,12 @@ const AnalyticsEventCard = ({ event }) => {
                     primary={`Atletas Confirmados: ${analytics.confirmedAthletesCount}`}
                   />
                 </ListItem>
-                {/* NOVO ListItem para Atletas Pagos */}
                 <ListItem
                   sx={{ backgroundColor: getBackgroundColor(1), borderRadius: '8px', mb: 1 }}
                 >
                   <PaidIcon sx={{ mr: 2, color: theme.palette.success.main }} />
                   <ListItemText primary={`Atletas Pagos: ${analytics.paidAthletesCount}`} />
                 </ListItem>
-                {/* O ListItem de Valor Recebido foi alterado para usar getBackgroundColor(2) */}
                 <ListItem
                   sx={{ backgroundColor: getBackgroundColor(2), borderRadius: '8px', mb: 1 }}
                 >
@@ -185,11 +185,34 @@ const AnalyticsEventCard = ({ event }) => {
                     }`}
                   />
                 </ListItem>
-                {/* O ListItem de Itens Pagos foi alterado para usar getBackgroundColor(3) */}
-                <ListItem sx={{ backgroundColor: getBackgroundColor(3), borderRadius: '8px' }}>
-                  <ShoppingCartIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
-                  <ListItemText primary={`Itens Pagos: ${analytics.totalItemsPaid}`} />
-                </ListItem>
+                {analytics.itemsPaidByItem &&
+                  Object.entries(analytics.itemsPaidByItem).length > 0 && (
+                    <>
+                      <Typography
+                        variant="subtitle3"
+                        fontWeight={600}
+                        sx={{ my: 1, color: theme.palette.text.secondary }}
+                      >
+                        Itens Pagos
+                      </Typography>
+                      <Divider sx={{ my: 1, borderColor: theme.palette.divider }} />
+                      {Object.entries(analytics.itemsPaidByItem).map(
+                        ([itemName, quantity], index) => (
+                          <ListItem
+                            key={itemName}
+                            sx={{
+                              backgroundColor: getBackgroundColor(index % 2),
+                              borderRadius: '8px',
+                              mb: 1,
+                            }}
+                          >
+                            <ShoppingCartIcon sx={{ mr: 2, color: theme.palette.primary.main }} />
+                            <ListItemText primary={`${itemName}: ${quantity}`} />
+                          </ListItem>
+                        )
+                      )}
+                    </>
+                  )}
               </List>
             ) : (
               <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 2 }}>
@@ -259,7 +282,6 @@ const AnalyticsEventCard = ({ event }) => {
                       }
                     />
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {/* Ícone de Confirmação de Evento */}
                       <Box
                         sx={{
                           color: athlete.status
@@ -271,7 +293,6 @@ const AnalyticsEventCard = ({ event }) => {
                       >
                         {athlete.status ? <CheckCircleOutlineIcon /> : <PanoramaFishEyeIcon />}
                       </Box>
-                      {/* Ícone de Confirmação de Pagamento */}
                       <Box
                         sx={{
                           color: athlete.hasPaid

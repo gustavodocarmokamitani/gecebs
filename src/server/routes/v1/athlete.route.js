@@ -140,75 +140,81 @@ router.post('/create-athlete', authenticateToken, async (req, res) => {
       return res.status(409).json({ message: 'Um usuário com este telefone já existe.' });
     }
 
-    const genericPassword = `${firstName.replace(/\s/g, '').toLowerCase()}123`;
-    const hashedPassword = await bcrypt.hash(genericPassword, 10);
+    // Usando a transação para garantir que a criação e a associação são atômicas
+    const result = await prisma.$transaction(async (prisma) => {
+      const genericPassword = `${firstName.replace(/\s/g, '').toLowerCase()}123`;
+      const hashedPassword = await bcrypt.hash(genericPassword, 10);
 
-    const newAthlete = await prisma.user.create({
-      data: {
-        username,
-        password: hashedPassword,
-        role: 'ATHLETE',
-        teamId: teamId,
-        athlete: {
-          create: {
-            firstName,
-            lastName,
-            phone,
-            birthDate: new Date(birthDate),
-            federationId,
-            confederationId,
-            shirtNumber,
-            categories: {
-              createMany: {
-                data: categories.map((categoryId) => ({ categoryId })),
+      const newAthlete = await prisma.user.create({
+        data: {
+          username,
+          password: hashedPassword,
+          role: 'ATHLETE',
+          teamId: teamId,
+          athlete: {
+            create: {
+              firstName,
+              lastName,
+              phone,
+              birthDate: new Date(birthDate),
+              federationId,
+              confederationId,
+              shirtNumber,
+              categories: {
+                createMany: {
+                  data: categories.map((categoryId) => ({ categoryId })),
+                },
               },
             },
           },
         },
-      },
-      include: {
-        athlete: {
-          include: {
-            categories: {
-              include: {
-                category: true,
+        include: {
+          athlete: {
+            include: {
+              categories: {
+                include: {
+                  category: true,
+                },
               },
             },
           },
         },
-      },
+      });
+
+      // Lógica para associar o novo atleta a pagamentos existentes que NÃO FORAM FINALIZADOS
+      const paymentUsersToCreate = [];
+      for (const categoryId of categories) {
+        const existingPayments = await prisma.payment.findMany({
+          where: {
+            categoryId: categoryId,
+            isFinalized: false, // Adicionado para ignorar pagamentos finalizados
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        existingPayments.forEach((payment) => {
+          paymentUsersToCreate.push({
+            paymentId: payment.id,
+            userId: newAthlete.id,
+          });
+        });
+      }
+
+      if (paymentUsersToCreate.length > 0) {
+        await prisma.paymentUser.createMany({
+          data: paymentUsersToCreate,
+          skipDuplicates: true,
+        });
+      }
+
+      return { newAthlete, genericPassword };
     });
 
-    // Lógica para associar o novo atleta a pagamentos existentes
-    const paymentUsersToCreate = [];
-    for (const categoryId of categories) {
-      const existingPayments = await prisma.payment.findMany({
-        where: {
-          categoryId: categoryId,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      existingPayments.forEach((payment) => {
-        paymentUsersToCreate.push({
-          paymentId: payment.id,
-          userId: newAthlete.id,
-        });
-      });
-    }
-
-    if (paymentUsersToCreate.length > 0) {
-      await prisma.paymentUser.createMany({
-        data: paymentUsersToCreate,
-        skipDuplicates: true,
-      });
-    }
-
     res.status(201).json({
-      message: 'Atleta criado com sucesso. Senha temporária: ' + genericPassword,
-      athlete: newAthlete,
+      message: 'Atleta criado com sucesso. Senha temporária: ' + result.genericPassword,
+      athlete: result.newAthlete,
     });
   } catch (err) {
     console.error(err);
@@ -258,12 +264,13 @@ router.patch('/update-athlete/:id', authenticateToken, async (req, res) => {
       const oldCategoryIds = oldCategories.map((c) => c.categoryId);
       const newCategoryIds = categories.map(Number);
 
-      // Passo 2: Excluir associações de pagamentos que não são mais relevantes
+      // Passo 2: Excluir associações de pagamentos que não são mais relevantes E NÃO ESTÃO FINALIZADOS
       const removedCategoryIds = oldCategoryIds.filter((catId) => !newCategoryIds.includes(catId));
       if (removedCategoryIds.length > 0) {
         const paymentsToRemove = await prisma.payment.findMany({
           where: {
             categoryId: { in: removedCategoryIds },
+            isFinalized: false, // Adicionado para verificar se o pagamento não está finalizado
           },
           select: {
             id: true,
@@ -281,12 +288,13 @@ router.patch('/update-athlete/:id', authenticateToken, async (req, res) => {
         }
       }
 
-      // Passo 3: Adicionar novas associações de pagamentos
+      // Passo 3: Adicionar novas associações de pagamentos QUE NÃO ESTÃO FINALIZADOS
       const addedCategoryIds = newCategoryIds.filter((catId) => !oldCategoryIds.includes(catId));
       if (addedCategoryIds.length > 0) {
         const paymentsToAdd = await prisma.payment.findMany({
           where: {
             categoryId: { in: addedCategoryIds },
+            isFinalized: false, // Adicionado para garantir que o pagamento não está finalizado
           },
           select: {
             id: true,

@@ -48,7 +48,7 @@ const PaymentForm = () => {
     try {
       const [fetchedCategories, fetchedEvents] = await Promise.all([
         CategoryService.getAll(),
-        EventService.listAllTeamEvents(),
+        EventService.listAllTeamEventsNotFinalized(),
       ]);
       setCategories(fetchedCategories);
       setEvents(fetchedEvents);

@@ -44,6 +44,19 @@ const Event = {
   },
 
   /**
+   * Lista todos os eventos criados para o time do manager.
+   * Rota: GET /event/list-all-team-events
+   */
+  listAllTeamEventsNotFinalized: async () => {
+    try {
+      const response = await api.get('/event/list-all-team-events-not-finalized');
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
    * Lista os eventos aos quais o atleta está associado.
    * Rota: GET /event/list-all-events-athletics
    */
