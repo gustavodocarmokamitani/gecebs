@@ -1,6 +1,11 @@
 import React from 'react';
 import { Box, List, Divider, Drawer, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { useResponsive } from '../../hooks/useResponsive';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/AuthContext';
+import NavItem from './NavItem';
+import SpaceDashboardIcon from '@mui/icons-material/SpaceDashboard';
 import AnalyticsIcon from '@mui/icons-material/AutoGraph';
 import PaymentIcon from '@mui/icons-material/Payment';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
@@ -9,11 +14,6 @@ import SportsBaseballIcon from '@mui/icons-material/SportsBaseball';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import CategoryIcon from '@mui/icons-material/Category';
 import LogoutIcon from '@mui/icons-material/Logout';
-import { useResponsive } from '../../hooks/useResponsive';
-import NavItem from './NavItem';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/AuthContext';
-import SpaceDashboardIcon from '@mui/icons-material/SpaceDashboard';
 import HistoryIcon from '@mui/icons-material/History';
 import HomeIcon from '@mui/icons-material/Home';
 
@@ -31,7 +31,6 @@ const Nav = ({ open, onClose }) => {
     navigate('/login');
   };
 
-  // Lógica de renderização condicional
   const isAthlete = user?.role === 'ATHLETE';
   const isManager = user?.role === 'MANAGER';
   const isTeam = user?.role === 'TEAM';

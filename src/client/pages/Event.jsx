@@ -80,10 +80,8 @@ function Event() {
 
   useEffect(() => {
     const filteredEvents = events.filter((event) => {
-      // Converte a data do evento para o formato 'DD/MM/YYYY' para a busca
       const eventDate = new Date(event.date).toLocaleDateString('pt-BR');
 
-      // Verifica se o termo de busca está no nome, no local OU na data
       return (
         event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         event.location.toLowerCase().includes(searchTerm.toLowerCase()) ||

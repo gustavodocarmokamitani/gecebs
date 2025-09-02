@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -32,8 +32,8 @@ const EventCard = ({ event, onDelete }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [athletes, setAthletes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isFinalizing, setIsFinalizing] = useState(false); // Novo estado
-  const [openFinalizeDialog, setOpenFinalizeDialog] = useState(false); // Novo estado
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [openFinalizeDialog, setOpenFinalizeDialog] = useState(false);
   const theme = useTheme();
   const navigate = useNavigate();
   const deviceType = useResponsive();
@@ -151,7 +151,7 @@ const EventCard = ({ event, onDelete }) => {
             </Typography>
           ) : null}
 
-          {event.isFinalized ? ( // 👈 Lógica de renderização condicional
+          {event.isFinalized ? (
             <Box
               sx={{
                 display: 'flex',
@@ -271,7 +271,6 @@ const EventCard = ({ event, onDelete }) => {
         </Box>
       </Collapse>
 
-      {/* Diálogo de Confirmação */}
       <Dialog
         open={openFinalizeDialog}
         onClose={handleCloseFinalizeDialog}

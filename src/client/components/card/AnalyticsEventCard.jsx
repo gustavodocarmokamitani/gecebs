@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -16,9 +16,9 @@ import { useTheme } from '@mui/material/styles';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
-import PaidIcon from '@mui/icons-material/Paid';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'; // Importação alterada para MUI
 import { toast } from 'react-toastify';
+import PaidIcon from '@mui/icons-material/Paid';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { useResponsive } from '../../hooks/useResponsive';
 import EventService from '../../services/Event';
 
@@ -46,11 +46,9 @@ const AnalyticsEventCard = ({ event }) => {
         setIsLoading(true);
         try {
           const fetchedData = await EventService.getEventAnalytics(event.id);
-          console.log(fetchedData.metrics);
 
           setAthletes(fetchedData.confirmedAthletes);
           setAnalytics(fetchedData.metrics);
-          console.log(fetchedData);
         } catch (error) {
           console.error('Erro ao buscar dados do evento:', error);
           toast.error('Erro ao carregar os dados de analytics.');

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -11,13 +11,13 @@ import {
   FormControlLabel,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { toast } from 'react-toastify';
 import { useResponsive } from '../hooks/useResponsive';
+import Auth from '../services/Auth';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import usePhoneInput from '../hooks/usePhoneInput';
 import Athlete from '../services/Athlete';
 import Category from '../services/Category';
-import Auth from '../services/Auth';
 import CustomInput from '../components/common/CustomInput';
 import CustomButton from '../components/common/CustomButton';
 import CustomCheckbox from '../components/common/CustomCheckbox';

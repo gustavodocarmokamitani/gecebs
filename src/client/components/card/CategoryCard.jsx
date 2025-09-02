@@ -1,6 +1,3 @@
-// src/components/card/CategoryCard.jsx
-
-import React from 'react';
 import { Card, CardContent, Typography, Box, IconButton } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';

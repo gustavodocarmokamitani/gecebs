@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -11,15 +11,14 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { toast } from 'react-toastify';
 import { useResponsive } from '../hooks/useResponsive';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import EventService from '../services/Event';
 import CategoryService from '../services/Category';
 import CustomInput from '../components/common/CustomInput';
 import CustomButton from '../components/common/CustomButton';
 
-// Dados que não mudam e podem ficar aqui
 const eventTypes = [
   { value: 'Treinamento', label: 'Treinamento' },
   { value: 'Campeonato', label: 'Campeonato' },
@@ -47,7 +46,6 @@ const EventForm = () => {
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Função para buscar as categorias do backend
   const fetchCategories = async () => {
     try {
       const fetchedCategories = await CategoryService.getAll();
@@ -58,7 +56,6 @@ const EventForm = () => {
     }
   };
 
-  // Função para buscar os dados do evento para edição
   const fetchEventData = async () => {
     setIsLoading(true);
     try {
@@ -76,7 +73,7 @@ const EventForm = () => {
     } catch (err) {
       console.error('Erro ao buscar evento:', err);
       toast.error('Erro ao carregar os dados do evento para edição.');
-      navigate('/event'); // Redireciona em caso de erro
+      navigate('/event');
     } finally {
       setIsLoading(false);
     }
@@ -116,7 +113,6 @@ const EventForm = () => {
 
   const title = isEditing ? 'Editar Evento' : 'Adicionar Evento';
 
-  // Renderiza um spinner enquanto os dados estão sendo buscados
   if (isLoading && isEditing) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>

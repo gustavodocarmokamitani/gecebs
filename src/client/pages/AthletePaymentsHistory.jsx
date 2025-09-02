@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Typography,
   Divider,
@@ -9,11 +9,11 @@ import {
   AccordionDetails,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { toast } from 'react-toastify';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PaymentService from '../services/Payment';
 import AthletePaymentCard from '../components/card/AthletePaymentCard';
-import { toast } from 'react-toastify';
-import CustomInput from '../components/common/CustomInput'; // Importação do CustomInput
+import CustomInput from '../components/common/CustomInput';
 
 function AthletePaymentsHistory() {
   const theme = useTheme();
@@ -23,7 +23,7 @@ function AthletePaymentsHistory() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(''); // Novo estado para o termo de busca
+  const [searchTerm, setSearchTerm] = useState('');
 
   const handleAccordionChange = (panel) => (event, isExpanded) => {
     setExpanded(isExpanded ? panel : false);
@@ -34,9 +34,7 @@ function AthletePaymentsHistory() {
     setError(null);
     try {
       const paymentsResponse = await PaymentService.listMyPaymentsAll();
-      console.log(paymentsResponse);
 
-      // Mapeia e limpa a estrutura de dados
       const uniquePaymentsMap = new Map();
       paymentsResponse.forEach((pUser) => {
         uniquePaymentsMap.set(pUser.payment.id, pUser);
@@ -56,7 +54,6 @@ function AthletePaymentsHistory() {
     }
   };
 
-  // Função para agrupar os pagamentos por mês e ano
   const groupPaymentsByMonthAndYear = (paymentsToGroup) => {
     const groups = {};
     paymentsToGroup.forEach((payment) => {
@@ -94,18 +91,13 @@ function AthletePaymentsHistory() {
   useEffect(() => {
     const normalizedSearchTerm = searchTerm.trim().toLowerCase();
 
-    // Lógica de busca e filtro
     const filteredPayments = payments.filter((payment) => {
-      // Verifica se o pagamento é válido
       if (!payment || typeof payment !== 'object') return false;
 
-      // Busca por nome do pagamento
       const matchesName = payment.name?.toLowerCase().includes(normalizedSearchTerm);
 
-      // Busca por chave PIX
       const matchesPixKey = payment.pixKey?.toLowerCase().includes(normalizedSearchTerm);
 
-      // Busca por data de vencimento (mês, dia ou ano)
       const matchesDate = new Date(payment.dueDate)
         .toLocaleDateString('pt-BR')
         .includes(normalizedSearchTerm);
@@ -141,7 +133,6 @@ function AthletePaymentsHistory() {
       </Typography>
       <Divider sx={{ my: 2, borderColor: theme.palette.divider }} />
 
-      {/* Input de busca */}
       <Box sx={{ mt: 2, mb: 4 }}>
         <CustomInput
           label="Buscar Pagamento"

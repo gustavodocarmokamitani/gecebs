@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -14,12 +14,12 @@ import {
   DialogActions,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { toast } from 'react-toastify';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import PaymentService from '../services/Payment';
-import { toast } from 'react-toastify';
 import CustomButton from '../components/common/CustomButton';
+import PaymentService from '../services/Payment';
 
 function PaymentSelectionPage() {
   const { paymentId } = useParams();
@@ -38,13 +38,11 @@ function PaymentSelectionPage() {
     const fetchPaymentDetails = async (id) => {
       try {
         const paymentData = await PaymentService.getPaymentDetails(id);
-        console.log(paymentData);
 
         setPayment(paymentData);
         if (paymentData && Array.isArray(paymentData.items)) {
           const initialSelectedItems = {};
           paymentData.items.forEach((item) => {
-            // Inicializa a quantidade para 1 se for 'quantityEnabled' ou para 0 se não for
             initialSelectedItems[item.id] = item.quantityEnabled ? 1 : 0;
           });
           setSelectedItems(initialSelectedItems);
@@ -80,7 +78,6 @@ function PaymentSelectionPage() {
     if (!payment) return 0;
     let total = 0;
     payment.items?.forEach((item) => {
-      // Se quantityEnabled for false, a quantidade é sempre 1 para o cálculo
       const quantity = item.quantityEnabled ? selectedItems[item.id] || 0 : 1;
       total += quantity * item.value;
     });
@@ -172,7 +169,6 @@ function PaymentSelectionPage() {
                     R$ {item.value.toFixed(2).replace('.', ',')}
                   </Typography>
                 </Box>
-                {/* Renderização condicional para os botões */}
                 {item.quantityEnabled ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <IconButton
@@ -237,7 +233,6 @@ function PaymentSelectionPage() {
         </CustomButton>
       </Box>
 
-      {/* Diálogo de confirmação */}
       <Dialog
         open={openConfirmDialog}
         onClose={handleCloseConfirmDialog}

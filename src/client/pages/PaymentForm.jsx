@@ -10,10 +10,10 @@ import {
   MenuItem,
   CircularProgress,
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { toast } from 'react-toastify';
 import { useResponsive } from '../hooks/useResponsive';
+import { useTheme } from '@mui/material/styles';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CustomInput from '../components/common/CustomInput';
 import CustomButton from '../components/common/CustomButton';
 import CustomSelect from '../components/common/CustomSelect';
@@ -82,14 +82,12 @@ const PaymentForm = () => {
     const selectedEvent = events.find((event) => String(event.id) === String(formData.eventId));
 
     if (selectedEvent) {
-      // Atualiza o nome E a categoria automaticamente
       setFormData((prev) => ({
         ...prev,
         name: selectedEvent.name,
         categoryId: selectedEvent.categoryId,
       }));
     } else if (!isEditing) {
-      // Limpa os campos se nenhum evento for selecionado (apenas ao criar novo pagamento)
       setFormData((prev) => ({
         ...prev,
         name: '',
@@ -137,7 +135,6 @@ const PaymentForm = () => {
 
   const title = isEditing ? 'Editar Despesa' : 'Adicionar Despesa';
   const buttonText = isLoading ? 'Salvando...' : isEditing ? 'Salvar' : 'Avançar';
-  // A categoria agora também é desabilitada se um evento for selecionado
   const isNameAndCategoryDisabled = !!formData.eventId && !isEditing;
 
   if (isDataLoading) {

@@ -1,6 +1,3 @@
-// src/components/navigation/NavItem.jsx
-
-import React from 'react';
 import { ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
 import { useLocation, Link } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';

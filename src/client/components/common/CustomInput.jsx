@@ -1,5 +1,4 @@
-import React from 'react';
-import { TextField, Typography } from '@mui/material';
+import { TextField } from '@mui/material';
 import { styled } from '@mui/system';
 
 const StyledTextField = styled(TextField)(({ theme, type }) => ({

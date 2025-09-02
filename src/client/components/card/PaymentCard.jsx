@@ -1,6 +1,4 @@
-// src/components/card/PaymentCard.jsx
-
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -15,16 +13,13 @@ import {
   CircularProgress,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { toast } from 'react-toastify';
 import { useTheme } from '@mui/material/styles';
-import { useNavigate } from 'react-router-dom';
 import { useResponsive } from '../../hooks/useResponsive';
 import CustomButton from '../common/CustomButton';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
 import PaymentService from '../../services/Payment';
-import { toast } from 'react-toastify';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 import PaidIcon from '@mui/icons-material/Paid';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
@@ -36,7 +31,6 @@ const PaymentCard = ({ payment, onEdit, onDelete, onFinalize }) => {
   const [isLoadingSummary, setIsLoadingSummary] = useState(true);
   const [isLoadingAthletes, setIsLoadingAthletes] = useState(false);
   const theme = useTheme();
-  const navigate = useNavigate();
 
   const deviceType = useResponsive();
   const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
@@ -49,7 +43,6 @@ const PaymentCard = ({ payment, onEdit, onDelete, onFinalize }) => {
     return index % 2 === 0 ? '#2c2c2c' : '#050505';
   };
 
-  // useEffect para carregar o resumo de pagamento imediatamente
   useEffect(() => {
     if (payment?.id) {
       const fetchSummary = async () => {
@@ -69,7 +62,6 @@ const PaymentCard = ({ payment, onEdit, onDelete, onFinalize }) => {
     }
   }, [payment?.id]);
 
-  // useEffect para carregar a lista de atletas apenas quando o card for expandido
   useEffect(() => {
     if (isExpanded && payment?.id) {
       const fetchAthletes = async () => {
@@ -89,8 +81,7 @@ const PaymentCard = ({ payment, onEdit, onDelete, onFinalize }) => {
     }
   }, [isExpanded, payment?.id]);
 
-  // Condicional para desabilitar botões
-  const isFinalized = payment.isFinalized; // 👈 Assumindo que o `payment` terá o campo `isFinalized`
+  const isFinalized = payment.isFinalized;
   const actionButtonsDisabled = isFinalized;
 
   return (
@@ -129,7 +120,7 @@ const PaymentCard = ({ payment, onEdit, onDelete, onFinalize }) => {
           <Typography variant="p" component="div">
             {payment.name}
           </Typography>
-          {isFinalized ? ( // 👈 Mensagem de finalizado
+          {isFinalized ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <DoneAllIcon fontSize="small" sx={{ color: theme.palette.success.main }} />
               <Typography variant="body2" color={theme.palette.success.main}>
@@ -292,7 +283,7 @@ const PaymentCard = ({ payment, onEdit, onDelete, onFinalize }) => {
             )}
           </CardContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, my: 2, width: '90%' }}>
-            {!isFinalized && ( // 👈 Renderiza o botão "Finalizar" apenas se não estiver finalizado
+            {!isFinalized && (
               <CustomButton
                 variant="contained"
                 color="success"
@@ -305,7 +296,7 @@ const PaymentCard = ({ payment, onEdit, onDelete, onFinalize }) => {
               variant="contained"
               color="warning"
               onClick={onEdit}
-              disabled={actionButtonsDisabled} // 👈 Desabilita o botão se o pagamento for finalizado
+              disabled={actionButtonsDisabled}
             >
               Editar
             </CustomButton>
@@ -313,7 +304,7 @@ const PaymentCard = ({ payment, onEdit, onDelete, onFinalize }) => {
               variant="contained"
               color="error"
               onClick={onDelete}
-              disabled={actionButtonsDisabled} // 👈 Desabilita o botão se o pagamento for finalizado
+              disabled={actionButtonsDisabled}
             >
               Apagar
             </CustomButton>

@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Grid2 as Grid, Link as MuiLink, IconButton, InputAdornment } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { useAuth } from '../hooks/AuthContext';
 import AuthLayout from '../components/auth/AuthLayout';
 import CustomInput from '../components/common/CustomInput';
 import CustomButton from '../components/common/CustomButton';
-import { useAuth } from '../hooks/AuthContext';
-import { toast } from 'react-toastify';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -38,8 +38,6 @@ const Login = () => {
       if (success) {
         toast.success('Login realizado com sucesso!');
         navigate('/');
-      } else {
-        console.log('Login falhou (handleLogin)');
       }
     } catch (error) {
       console.error('Erro inesperado no login:', error);

@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, Divider, CircularProgress } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { toast } from 'react-toastify';
 import { useResponsive } from '../hooks/useResponsive';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CategoryService from '../services/Category';
 import CustomInput from '../components/common/CustomInput';
 import CustomButton from '../components/common/CustomButton';

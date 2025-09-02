@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -11,7 +11,6 @@ import {
   Collapse,
   Divider,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTheme } from '@mui/material/styles';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -20,7 +19,6 @@ import CustomButton from '../common/CustomButton';
 const AthleteCard = ({ athlete, onEdit, onDelete }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const theme = useTheme();
-  const navigate = useNavigate();
 
   const deviceType = useResponsive();
   const isMobile = deviceType === 'mobile' || deviceType === 'tablet';

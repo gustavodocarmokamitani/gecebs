@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -14,11 +14,11 @@ import {
   DialogContentText,
   DialogActions,
 } from '@mui/material';
+import { toast } from 'react-toastify';
 import { useTheme } from '@mui/material/styles';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
-import { toast } from 'react-toastify';
 import { useResponsive } from '../hooks/useResponsive';
 import CategoryService from '../services/Category';
 import CustomButton from '../components/common/CustomButton';

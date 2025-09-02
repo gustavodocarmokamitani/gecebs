@@ -306,7 +306,6 @@ router.get('/list-all-payments-athletics', authenticateToken, async (req, res) =
         { payment: { dueDate: 'desc' } }, // dentro de cada grupo, mais recentes primeiro
       ],
     });
-    console.log(myPayments);
 
     res.status(200).json(myPayments);
   } catch (err) {
@@ -391,7 +390,6 @@ router.get('/list-all-payments-athletics-all', authenticateToken, async (req, re
         { payment: { dueDate: 'desc' } }, // dentro de cada grupo, mais recentes primeiro
       ],
     });
-    console.log(myPayments);
 
     res.status(200).json(myPayments);
   } catch (err) {

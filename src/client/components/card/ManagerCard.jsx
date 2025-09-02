@@ -1,5 +1,4 @@
-// src/components/card/ManagerCard.jsx
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -13,8 +12,8 @@ import {
   Divider,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTheme } from '@mui/material/styles';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useResponsive } from '../../hooks/useResponsive';
 import CustomButton from '../common/CustomButton';
 

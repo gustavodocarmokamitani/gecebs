@@ -1,16 +1,13 @@
-import React from 'react';
 import { Card, CardContent, Typography, Box, Divider } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { useResponsive } from '../../hooks/useResponsive';
 import CustomButton from '../common/CustomButton';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import { useResponsive } from '../../hooks/useResponsive';
-import { useNavigate } from 'react-router-dom';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 
 const AthletePaymentCard = ({ payment, onConfirmPayment }) => {
   const theme = useTheme();
-  const navigate = useNavigate();
   const deviceType = useResponsive();
   const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
 
@@ -62,7 +59,6 @@ const AthletePaymentCard = ({ payment, onConfirmPayment }) => {
             Chave PIX: {payment.pixKey || 'Não aplicável'}
           </Typography>
 
-          {/* Exibe os itens se existirem */}
           {payment.items && payment.items.length > 0 && (
             <Typography variant="body2" color="text.secondary" component="div">
               Itens:
@@ -105,7 +101,6 @@ const AthletePaymentCard = ({ payment, onConfirmPayment }) => {
         </CardContent>
       </Box>
 
-      {/* Ações para o atleta */}
       <Box sx={{ p: 2, pt: 0 }}>
         {isPending && onConfirmPayment && (
           <CustomButton

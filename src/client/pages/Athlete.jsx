@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Typography,
@@ -14,12 +14,12 @@ import {
   DialogContentText,
   DialogActions,
 } from '@mui/material';
+import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '@mui/material/styles';
+import { toast } from 'react-toastify';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
-import { toast } from 'react-toastify';
-import { useResponsive } from '../hooks/useResponsive';
 import AthleteService from '../services/Athlete';
 import CategoryService from '../services/Category';
 import CustomButton from '../components/common/CustomButton';
@@ -42,7 +42,6 @@ function Athlete() {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [athleteIdToDelete, setAthleteIdToDelete] = useState(null);
 
-  //se remover o event o accordio nao funciona
   const handleAccordionChange = (panel) => (event, isExpanded) => {
     setExpanded(isExpanded ? panel : false);
   };

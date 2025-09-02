@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Typography,
   Divider,
@@ -7,10 +7,10 @@ import {
   AccordionSummary,
   AccordionDetails,
 } from '@mui/material';
+import { toast } from 'react-toastify';
 import { useTheme } from '@mui/material/styles';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { toast } from 'react-toastify';
 import AnalyticsEventCard from '../components/card/AnalyticsEventCard';
 import Event from '../services/Event';
 import CategoryService from '../services/Category';

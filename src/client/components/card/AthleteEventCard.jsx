@@ -1,17 +1,15 @@
-import React, { useState } from 'react';
-import { Card, CardContent, Typography, Box, Divider, CircularProgress } from '@mui/material';
+import { useState } from 'react';
+import { Card, Typography, Box, CircularProgress } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { useNavigate } from 'react-router-dom';
 import { useResponsive } from '../../hooks/useResponsive';
+import { toast } from 'react-toastify';
 import CustomButton from '../common/CustomButton';
 import EventService from '../../services/Event';
-import { toast } from 'react-toastify';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 
 const AthleteEventCard = ({ event, isConfirmed }) => {
   const theme = useTheme();
-  const navigate = useNavigate();
   const deviceType = useResponsive();
   const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
 
@@ -22,7 +20,6 @@ const AthleteEventCard = ({ event, isConfirmed }) => {
     try {
       await EventService.confirmPresence(event.id);
       toast.success('Presença confirmada com sucesso!');
-      // Opcional: recarregar a página para atualizar o estado do dashboard
       window.location.reload();
     } catch (error) {
       console.error('Erro ao confirmar presença:', error);
@@ -78,9 +75,7 @@ const AthleteEventCard = ({ event, isConfirmed }) => {
 
       <Box sx={{ p: 2, pt: 0 }}>
         {event.isFinalized ? (
-          // Se o evento estiver finalizado, a lógica é diferente
           isConfirmed ? (
-            // Se confirmado, mostra "Presença Confirmada"
             <Box
               sx={{
                 display: 'flex',
@@ -96,7 +91,6 @@ const AthleteEventCard = ({ event, isConfirmed }) => {
               </Typography>
             </Box>
           ) : (
-            // Se não confirmado, mostra "Evento Finalizado"
             <Box
               sx={{
                 display: 'flex',
@@ -113,7 +107,6 @@ const AthleteEventCard = ({ event, isConfirmed }) => {
             </Box>
           )
         ) : isConfirmed ? (
-          // Se o evento não estiver finalizado e a presença já estiver confirmada
           <Box
             sx={{
               display: 'flex',
@@ -129,7 +122,6 @@ const AthleteEventCard = ({ event, isConfirmed }) => {
             </Typography>
           </Box>
         ) : (
-          // Se o evento não estiver finalizado e a presença não tiver sido confirmada
           <CustomButton
             variant="contained"
             color="secondary"

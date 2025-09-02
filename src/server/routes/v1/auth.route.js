@@ -13,31 +13,25 @@ router.post('/register-team', async (req, res) => {
   try {
     const { name, email, password, phone } = req.body;
 
-    // 1. Validação simples
     if (!name || !email || !password || !phone) {
       return res.status(400).json({ message: 'Todos os campos são obrigatórios.' });
     }
 
     const username = email.split('@')[0];
 
-    // 2. Limpar o número de telefone
-    const cleanedPhone = phone.replace(/\D/g, ''); // Remove tudo que não for dígito
+    const cleanedPhone = phone.replace(/\D/g, '');
 
-    // 3. Hash da senha
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 4. Usa uma transação para garantir que ambos os registros sejam criados
     const [newTeam, newUser] = await prisma.$transaction([
-      // Primeira operação: Cria o Time
       prisma.team.create({
         data: {
           name,
           email,
-          phone: cleanedPhone, // Usa o número de telefone limpo
+          phone: cleanedPhone,
           password: hashedPassword,
         },
       }),
-      // Segunda operação: Cria o Usuário associado ao Time
       prisma.user.create({
         data: {
           username: username,
@@ -51,19 +45,15 @@ router.post('/register-team', async (req, res) => {
       }),
     ]);
 
-    // 5. Responde ao cliente com sucesso
     res.status(201).json({
       message: 'Time e usuário registrados com sucesso!',
       teamId: newTeam.id,
       userId: newUser.id,
     });
   } catch (error) {
-    // Trata erros específicos do Prisma
     if (error.code === 'P2002') {
-      // Erro de campo único (email ou phone já existe)
       return res.status(409).json({ message: 'Este e-mail ou telefone já está em uso.' });
     }
-    // Erros gerais
     console.error('Erro ao registrar o time:', error);
     res.status(500).json({ message: 'Erro interno ao registrar. Tente novamente mais tarde.' });
   }
@@ -77,16 +67,14 @@ router.post('/login', async (req, res) => {
     const { loginId, password } = req.body;
 
     if (!loginId || !password) {
-      console.log('Dados de login ausentes.');
       return res
         .status(400)
         .json({ message: 'E-mail ou nome de usuário e senha são obrigatórios.' });
     }
 
     let user;
-    let authSource = null; // Para saber de onde veio o usuário (team ou user)
+    let authSource = null;
 
-    // Tenta encontrar o usuário pelo email do time
     const team = await prisma.team.findUnique({
       where: { email: loginId },
     });
@@ -100,7 +88,6 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    // Se o login por e-mail falhou, tenta com o username
     if (!user) {
       const dbUser = await prisma.user.findUnique({
         where: { username: loginId },
@@ -126,7 +113,6 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'E-mail, nome de usuário ou senha inválidos' });
     }
 
-    // Se o login foi bem-sucedido
     const tokenPayload =
       authSource === 'team'
         ? { id: user.id, role: 'TEAM', teamId: user.id }
@@ -148,9 +134,8 @@ router.post('/login', async (req, res) => {
  */
 router.get('/email-exists', async (req, res) => {
   try {
-    const { email } = req.query; // Pega o email dos parâmetros da URL
+    const { email } = req.query;
 
-    // Procura por um time com o email fornecido
     const team = await prisma.team.findUnique({
       where: { email },
     });
@@ -172,11 +157,9 @@ router.get('/email-exists', async (req, res) => {
 router.get(
   '/phone-exists',
   (req, res, next) => {
-    // Desabilita o cache para esta requisição GET
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-    next(); // Continua para a próxima função na rota
   },
   async (req, res) => {
     try {

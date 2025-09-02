@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Typography, Divider, Box, CircularProgress } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { toast } from 'react-toastify';
 import EventService from '../services/Event';
 import PaymentService from '../services/Payment';
 import AthleteEventCard from '../components/card/AthleteEventCard';
@@ -17,11 +16,6 @@ function AthleteDashboard() {
   const [payments, setPayments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [expanded, setExpanded] = useState(false);
-
-  const handleAccordionChange = (panel) => (event, isExpanded) => {
-    setExpanded(isExpanded ? panel : false);
-  };
 
   const navigateToPaymentDetails = (paymentId) => {
     navigate(`/payment/${paymentId}`);
@@ -37,23 +31,20 @@ function AthleteDashboard() {
       const eventsData = Array.isArray(eventsResponse) ? eventsResponse : [];
       const paymentsData = Array.isArray(paymentsResponse) ? paymentsResponse : [];
 
-      // Deduplicação dos eventos
       const uniqueEventsMap = new Map();
       eventsData.forEach((event) => {
         uniqueEventsMap.set(event.id, event);
       });
       const uniqueEvents = Array.from(uniqueEventsMap.values());
 
-      // Deduplicação dos pagamentos
       const uniquePaymentsMap = new Map();
       paymentsData.forEach((pUser) => {
         uniquePaymentsMap.set(pUser.payment.id, pUser);
       });
 
-      // Mapear os pagamentos para uma estrutura mais limpa
       const cleanedPayments = Array.from(uniquePaymentsMap.values()).map((pUser) => ({
-        ...pUser.payment, // Pega todas as propriedades do objeto 'payment' aninhado
-        paidAt: pUser.paidAt, // Adiciona a propriedade 'paidAt' do objeto principal
+        ...pUser.payment,
+        paidAt: pUser.paidAt,
       }));
 
       setEvents(uniqueEvents);
@@ -70,21 +61,7 @@ function AthleteDashboard() {
     fetchAthleteData();
   }, []);
 
-  // Agora que a estrutura de 'payments' foi corrigida, o filtro funcionará
   const pendingPayments = payments.filter((p) => p.paidAt === null);
-  const paidPayments = payments.filter((p) => p.paidAt !== null);
-
-  const paidPaymentsByMonth = paidPayments.reduce((acc, payment) => {
-    const month = new Date(payment.dueDate).toLocaleString('pt-BR', {
-      year: 'numeric',
-      month: 'long',
-    });
-    if (!acc[month]) {
-      acc[month] = [];
-    }
-    acc[month].push(payment);
-    return acc;
-  }, {});
 
   return (
     <Box>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -14,15 +14,15 @@ import {
   Tooltip,
   CircularProgress,
 } from '@mui/material';
-import CustomInput from '../components/common/CustomInput';
-import CustomButton from '../components/common/CustomButton';
+import { useTheme } from '@mui/material/styles';
+import { useResponsive } from '../hooks/useResponsive';
+import { toast } from 'react-toastify';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import { useTheme } from '@mui/material/styles';
-import { useResponsive } from '../hooks/useResponsive';
+import CustomInput from '../components/common/CustomInput';
+import CustomButton from '../components/common/CustomButton';
 import PaymentService from '../services/Payment';
-import { toast } from 'react-toastify';
 
 const PaymentItemForm = () => {
   const { paymentId } = useParams();
@@ -44,7 +44,6 @@ const PaymentItemForm = () => {
   const [error, setError] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
 
-  // Função para buscar o pagamento e seus itens
   const fetchPaymentAndItems = async () => {
     setIsLoading(true);
     try {
@@ -95,21 +94,17 @@ const PaymentItemForm = () => {
       };
 
       if (editingItem) {
-        // Lógica de EDIÇÃO
         await PaymentService.updateItem(editingItem.id, dataToSubmit);
         toast.success('Item atualizado com sucesso!');
       } else {
-        // Lógica de ADIÇÃO
         await PaymentService.addItem(parseInt(paymentId), dataToSubmit);
         toast.success('Item adicionado com sucesso!');
       }
 
-      // Após a operação de sucesso, recarrega todos os dados do pagamento
-      // Isso é crucial para que o valor total seja atualizado na tela
       await fetchPaymentAndItems();
 
       setFormData({ name: '', value: '', quantityEnabled: false });
-      setEditingItem(null); // Limpa o estado de edição
+      setEditingItem(null);
     } catch (err) {
       console.error('Erro ao salvar o item:', err);
       toast.error(`Erro ao salvar o item: ${err.response?.data?.message || err.message}`);
@@ -133,7 +128,6 @@ const PaymentItemForm = () => {
       await PaymentService.deleteItem(itemId);
       toast.success('Item removido com sucesso!');
 
-      // Após a exclusão, recarrega todos os dados do pagamento para sincronizar o total
       await fetchPaymentAndItems();
     } catch (err) {
       console.error('Erro ao deletar o item:', err);

@@ -1,6 +1,4 @@
-// src/pages/Payment.jsx
-
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Typography,
@@ -16,12 +14,12 @@ import {
   DialogContentText,
   DialogActions,
 } from '@mui/material';
+import { toast } from 'react-toastify';
+import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '@mui/material/styles';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
-import { toast } from 'react-toastify';
-import { useResponsive } from '../hooks/useResponsive';
 import PaymentService from '../services/Payment';
 import PaymentCard from '../components/card/PaymentCard';
 import CustomButton from '../components/common/CustomButton';
@@ -42,7 +40,6 @@ function Payment() {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [paymentIdToDelete, setPaymentIdToDelete] = useState(null);
 
-  // Estados para o diálogo de finalização
   const [openFinalizeDialog, setOpenFinalizeDialog] = useState(false);
   const [paymentIdToFinalize, setPaymentIdToFinalize] = useState(null);
 
@@ -147,7 +144,6 @@ function Payment() {
     }
   };
 
-  // 👇 Nova função para finalizar o pagamento
   const handleFinalizePayment = async (id) => {
     setPaymentIdToFinalize(id);
     setOpenFinalizeDialog(true);
@@ -164,7 +160,6 @@ function Payment() {
       try {
         await PaymentService.finalizePayment(paymentIdToFinalize);
         toast.success('Pagamento finalizado com sucesso!');
-        // Recarregar os pagamentos para refletir o novo estado
         fetchPayments();
       } catch (err) {
         console.error('Erro ao finalizar pagamento:', err);
@@ -301,7 +296,6 @@ function Payment() {
         })
       )}
 
-      {/* Diálogo de confirmação de exclusão */}
       <Dialog
         open={openDeleteDialog}
         onClose={handleCloseDeleteDialog}
@@ -327,7 +321,6 @@ function Payment() {
         </DialogActions>
       </Dialog>
 
-      {/* 👇 Diálogo de confirmação de finalização */}
       <Dialog
         open={openFinalizeDialog}
         onClose={handleCloseFinalizeDialog}

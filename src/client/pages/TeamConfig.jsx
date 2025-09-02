@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -8,18 +8,17 @@ import {
   AccordionSummary,
   AccordionDetails,
 } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useTheme } from '@mui/material/styles';
-import CustomInput from '../components/common/CustomInput';
-import CustomButton from '../components/common/CustomButton';
-import TeamService from '../services/Team';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { useResponsive } from '../hooks/useResponsive';
-import usePhoneInput from '../hooks/usePhoneInput';
 import Auth from '../services/Auth';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import CustomInput from '../components/common/CustomInput';
+import CustomButton from '../components/common/CustomButton';
+import TeamService from '../services/Team';
+import usePhoneInput from '../hooks/usePhoneInput';
 
-// Importações para a nova funcionalidade de relatório
 import AnalyticsService from '../services/Analytics';
 import * as XLSX from 'xlsx';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
@@ -48,7 +47,6 @@ const TeamConfig = () => {
   const [isSubmittingTeamData, setIsSubmittingTeamData] = useState(false);
   const [isSubmittingPasswords, setIsSubmittingPasswords] = useState(false);
 
-  // Estados para a funcionalidade de exportação
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState(null);
 
@@ -186,7 +184,6 @@ const TeamConfig = () => {
 
       const workbook = XLSX.utils.book_new();
 
-      // 1. Planilha de Atletas
       const allAthletes = [];
       categoriesData.forEach((category) => {
         if (category.athletes && category.athletes.length > 0) {
@@ -210,7 +207,6 @@ const TeamConfig = () => {
         XLSX.utils.book_append_sheet(workbook, athletesSheet, 'Atletas');
       }
 
-      // 2. Planilha de Eventos
       const allEvents = [];
       categoriesData.forEach((category) => {
         if (category.events && category.events.length > 0) {
@@ -230,7 +226,6 @@ const TeamConfig = () => {
         XLSX.utils.book_append_sheet(workbook, eventsSheet, 'Eventos');
       }
 
-      // 3. Planilha de Pagamentos
       const allPayments = [];
       categoriesData.forEach((category) => {
         if (category.payments && category.payments.length > 0) {
@@ -251,7 +246,6 @@ const TeamConfig = () => {
         XLSX.utils.book_append_sheet(workbook, paymentsSheet, 'Pagamentos');
       }
 
-      // 4. Planilha de Resumo Financeiro
       const financialSummaryData = [];
       let totalValue = 0;
       categoriesData.forEach((category) => {
@@ -276,7 +270,6 @@ const TeamConfig = () => {
         XLSX.utils.book_append_sheet(workbook, financialSummarySheet, 'Resumo Financeiro');
       }
 
-      // Gerar o arquivo Excel final
       if (workbook.SheetNames.length > 0) {
         XLSX.writeFile(workbook, 'Relatorio_Gerencial.xlsx');
         toast.success('Relatório gerencial gerado com sucesso!');
@@ -308,7 +301,6 @@ const TeamConfig = () => {
       </Typography>
       <Divider sx={{ my: 2, borderColor: theme.palette.divider }} />
 
-      {/* Accordion: Dados do Time */}
       <Accordion
         expanded={expanded === 'dados-do-time'}
         onChange={handleAccordionChange('dados-do-time')}
@@ -399,7 +391,6 @@ const TeamConfig = () => {
         </AccordionDetails>
       </Accordion>
 
-      {/* Accordion: Configuração de Senhas */}
       <Accordion
         expanded={expanded === 'configuracao-de-senhas'}
         onChange={handleAccordionChange('configuracao-de-senhas')}
@@ -461,7 +452,6 @@ const TeamConfig = () => {
         </AccordionDetails>
       </Accordion>
 
-      {/* Accordion: Relatórios de Análise */}
       <Accordion
         expanded={expanded === 'relatorios'}
         onChange={handleAccordionChange('relatorios')}

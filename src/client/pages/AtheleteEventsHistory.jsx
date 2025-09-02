@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Typography,
   Divider,
@@ -9,10 +9,10 @@ import {
   AccordionDetails,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { toast } from 'react-toastify';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import EventService from '../services/Event';
 import AthleteEventCard from '../components/card/AthleteEventCard';
-import { toast } from 'react-toastify';
 import CustomInput from '../components/common/CustomInput';
 
 function AthleteEventsHistory() {
@@ -23,7 +23,7 @@ function AthleteEventsHistory() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(''); // Novo estado para o termo de busca
+  const [searchTerm, setSearchTerm] = useState('');
 
   const handleAccordionChange = (panel) => (event, isExpanded) => {
     setExpanded(isExpanded ? panel : false);
@@ -35,7 +35,6 @@ function AthleteEventsHistory() {
     try {
       const fetchedEvents = await EventService.listMyEventsAll();
 
-      // Filtra os eventos únicos com base no ID
       const uniqueEventsMap = new Map();
       fetchedEvents.forEach((event) => {
         uniqueEventsMap.set(event.id, event);
@@ -60,7 +59,7 @@ function AthleteEventsHistory() {
       }
       groups[year].push(event);
     });
-    // Ordena os anos do mais recente para o mais antigo
+
     const sortedYears = Object.keys(groups).sort((a, b) => b - a);
     const sortedGroups = {};
     sortedYears.forEach((year) => {
@@ -76,18 +75,13 @@ function AthleteEventsHistory() {
   useEffect(() => {
     const normalizedSearchTerm = searchTerm.trim().toLowerCase();
 
-    // Lógica de busca e filtro
     const filteredEvents = events.filter((event) => {
-      // Verifica se o evento é válido
       if (!event || typeof event !== 'object') return false;
 
-      // Busca por nome do evento
       const matchesName = event.name?.toLowerCase().includes(normalizedSearchTerm);
 
-      // Busca por local do evento
       const matchesLocation = event.location?.toLowerCase().includes(normalizedSearchTerm);
 
-      // Busca por data (dia, mês ou ano)
       const eventDate = new Date(event.date);
       const matchesDate =
         eventDate.toLocaleDateString('pt-BR').includes(normalizedSearchTerm) ||
@@ -128,7 +122,6 @@ function AthleteEventsHistory() {
       </Typography>
       <Divider sx={{ my: 2, borderColor: theme.palette.divider }} />
 
-      {/* Input de busca */}
       <Box sx={{ mt: 2, mb: 4 }}>
         <CustomInput
           label="Buscar Evento"

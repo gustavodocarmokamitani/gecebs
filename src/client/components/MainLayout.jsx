@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import Nav from './navigation/Nav';
 import { AppBar, Toolbar, IconButton, Typography, Box } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
 import { useResponsive } from '../hooks/useResponsive';
 import { useTheme } from '@mui/material/styles';
+import Nav from './navigation/Nav';
 import routesConfig from '../utils/routesConfig';
 import HomeIcon from '@mui/icons-material/Home';
 import SettingsIcon from '@mui/icons-material/Settings';
+import MenuIcon from '@mui/icons-material/Menu';
 
 const drawerWidth = 300;
 

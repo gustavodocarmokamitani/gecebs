@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Grid2 as Grid, Link as MuiLink, IconButton, InputAdornment } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import AuthLayout from '../components/auth/AuthLayout';
+import Auth from '../services/Auth';
 import CustomButton from '../components/common/CustomButton';
 import CustomInput from '../components/common/CustomInput';
-import Auth from '../services/Auth';
-import { toast } from 'react-toastify';
 import usePhoneInput from '../hooks/usePhoneInput';
 
 const Register = () => {
@@ -19,11 +19,9 @@ const Register = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
-  // Adicione um estado para o erro do telefone
   const [phoneServerError, setPhoneServerError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Use o hook para gerenciar o input de telefone
   const { phoneNumber, phoneError, handlePhoneChange } = usePhoneInput();
 
   const handleInputChange = (e) => {
@@ -35,7 +33,6 @@ const Register = () => {
     setShowPassword(!showPassword);
   };
 
-  // useEffect para verificar o e-mail
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
       if (formData.email) {
@@ -54,16 +51,12 @@ const Register = () => {
     return () => clearTimeout(timeoutId);
   }, [formData.email]);
 
-  // Novo useEffect para verificar o telefone
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
-      // 1. Crie uma variável para o número de telefone limpo
-      const phoneToVerify = phoneNumber.replace(/\D/g, ''); // Remove tudo que não for dígito
+      const phoneToVerify = phoneNumber.replace(/\D/g, '');
 
       if (phoneToVerify.length >= 10) {
-        // Garante que tem pelo menos 10 dígitos (com DDD)
         try {
-          // 2. Use o número limpo na chamada da API
           const result = await Auth.checkPhoneExists(phoneToVerify);
 
           if (result.exists) {
@@ -75,7 +68,6 @@ const Register = () => {
           setPhoneServerError('Não foi possível verificar o telefone.');
         }
       } else {
-        // Limpa o erro do servidor se o número não estiver completo
         setPhoneServerError('');
       }
     }, 500);
@@ -86,7 +78,6 @@ const Register = () => {
     event.preventDefault();
     setIsLoading(true);
 
-    // Validação da confirmação de senha
     if (formData.password !== formData.passwordConfirm) {
       toast.error('As senhas não coincidem.');
       setIsLoading(false);
@@ -100,14 +91,12 @@ const Register = () => {
       return;
     }
 
-    // Validação de telefone (do hook usePhoneInput) e do servidor
     if (phoneError || phoneServerError) {
       toast.error('Corrija os erros do telefone antes de continuar.');
       setIsLoading(false);
       return;
     }
 
-    // Verificação final de erros antes de enviar
     if (emailError) {
       toast.error('Corrija os erros do formulário antes de continuar.');
       setIsLoading(false);
@@ -115,12 +104,11 @@ const Register = () => {
     }
 
     try {
-      // Envie os dados, incluindo o phoneNumber do hook
       const data = await Auth.registerTeam({
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        phone: phoneNumber, // Use o valor do hook aqui
+        phone: phoneNumber,
       });
 
       toast.success(data.message);
@@ -220,7 +208,6 @@ const Register = () => {
               value={phoneNumber}
               onChange={handlePhoneChange}
               disabled={isLoading}
-              // Combine os erros do hook e do servidor
               error={!!phoneError || !!phoneServerError}
               helperText={phoneError || phoneServerError}
             />

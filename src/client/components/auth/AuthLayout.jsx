@@ -1,11 +1,7 @@
-import React from 'react';
 import { Box, Paper, Typography } from '@mui/material';
-import { useResponsive } from '../../hooks/useResponsive';
 import backgroundAuth from '../../../assets/backgroundAuth.jpg';
 
 const AuthLayout = ({ page, title, children }) => {
-  const deviceType = useResponsive();
-
   return (
     <Box
       sx={{
