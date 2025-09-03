@@ -154,35 +154,26 @@ router.get('/email-exists', async (req, res) => {
 /**
  * Rota para verificar se um telefone já existe na base de dados
  */
-router.get(
-  '/phone-exists',
-  (req, res, next) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-  },
-  async (req, res) => {
-    try {
-      const { phone } = req.query;
-      console.log('DATABASE_URL lida pelo código:', process.env.DATABASE_URL);
-      if (!phone) {
-        return res.status(400).json({ message: 'O número de telefone é obrigatório.' });
-      }
-
-      const team = await prisma.team.findUnique({ where: { phone } });
-      const manager = await prisma.manager.findUnique({ where: { phone } });
-      const athlete = await prisma.athlete.findUnique({ where: { phone } });
-
-      if (team || manager || athlete) {
-        return res.status(200).json({ exists: true, message: 'Este telefone já está cadastrado.' });
-      }
-
-      return res.status(200).json({ exists: false, message: 'Telefone disponível.' });
-    } catch (err) {
-      console.error('Erro ao verificar o telefone:', err);
-      res.status(500).json({ message: 'Erro ao verificar o telefone.' });
+router.get('/phone-exists', async (req, res) => {
+  try {
+    const { phone } = req.query;
+    if (!phone) {
+      return res.status(400).json({ message: 'O número de telefone é obrigatório.' });
     }
+
+    const team = await prisma.team.findUnique({ where: { phone } });
+    const manager = await prisma.manager.findUnique({ where: { phone } });
+    const athlete = await prisma.athlete.findUnique({ where: { phone } });
+
+    if (team || manager || athlete) {
+      return res.status(200).json({ exists: true, message: 'Este telefone já está cadastrado.' });
+    }
+
+    return res.status(200).json({ exists: false, message: 'Telefone disponível.' });
+  } catch (err) {
+    console.error('Erro ao verificar o telefone:', err);
+    res.status(500).json({ message: 'Erro ao verificar o telefone.' });
   }
-);
+});
 
 export default router;

@@ -27,10 +27,9 @@ const usePhoneInput = (initialValue = '') => {
     }
 
     setPhoneNumber(input);
-  }, []); // 👈 Array de dependências vazio, pois a lógica não depende de props ou estados.
+  }, []);
 
   useEffect(() => {
-    // A validação continua aqui, com debounce
     const timeoutId = setTimeout(() => {
       if (phoneNumber && !phoneRegex.test(phoneNumber)) {
         setPhoneError('Formato de telefone inválido. Use (00) 00000-0000.');
