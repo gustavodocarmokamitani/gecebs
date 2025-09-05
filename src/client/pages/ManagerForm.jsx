@@ -83,10 +83,11 @@ const ManagerForm = () => {
 
   useEffect(() => {
     if (!isEditing) {
+      setPhoneServerError('Verificando telefone...');
       const timeoutId = setTimeout(async () => {
         const phoneToVerify = phoneNumber.replace(/\D/g, '');
 
-        if (phoneToVerify.length >= 10) {
+        if (phoneToVerify.length >= 11) {
           try {
             const result = await Auth.checkPhoneExists(phoneToVerify);
             if (result.exists) {

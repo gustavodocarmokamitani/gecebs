@@ -95,7 +95,8 @@ const AthleteForm = () => {
         return;
       }
       const phoneToVerify = phoneNumber.replace(/\D/g, '');
-      if (phoneToVerify.length >= 10) {
+      if (phoneToVerify.length >= 11) {
+        setPhoneServerError('Verificando telefone...');
         try {
           const result = await Auth.checkPhoneExists(phoneToVerify);
           if (result.exists) {

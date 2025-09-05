@@ -766,9 +766,9 @@ router.get('/:eventId/analytics', authenticateToken, async (req, res) => {
     const { eventId } = req.params;
     const parsedEventId = parseInt(eventId);
 
-    // ... (Seu código existente para obter atletas confirmados e pagos) ...
-
-    const confirmedUserIdsRaw = await prisma.confirmationUser.findMany({
+    // 1. Busca todos os usuários que confirmaram presença no evento.
+    // O `select` é otimizado para pegar apenas o `userId`.
+    const confirmedUsersRaw = await prisma.confirmationUser.findMany({
       where: {
         confirmation: {
           eventId: parsedEventId,
@@ -780,23 +780,9 @@ router.get('/:eventId/analytics', authenticateToken, async (req, res) => {
       },
     });
 
-    const confirmedUserIds = [...new Set(confirmedUserIdsRaw.map((cu) => cu.userId))];
+    const confirmedUserIds = [...new Set(confirmedUsersRaw.map((cu) => cu.userId))];
 
-    const paidUsers = await prisma.paymentUser.findMany({
-      where: {
-        payment: {
-          eventId: parsedEventId,
-        },
-      },
-      select: {
-        userId: true,
-        paidAt: true,
-      },
-    });
-
-    const paidUserIds = new Set(paidUsers.map((pu) => (pu.paidAt === null ? false : true)));
-    const paidAthletesCount = paidUsers.filter((pu) => pu.paidAt !== null).length;
-
+    // Se não há atletas confirmados, retorna uma resposta vazia.
     if (confirmedUserIds.length === 0) {
       return res.status(200).json({
         confirmedAthletes: [],
@@ -810,6 +796,7 @@ router.get('/:eventId/analytics', authenticateToken, async (req, res) => {
       });
     }
 
+    // 2. Busca os dados dos atletas confirmados e os pagamentos/itens associados
     const athletesData = await prisma.user.findMany({
       where: {
         id: {
@@ -824,18 +811,22 @@ router.get('/:eventId/analytics', authenticateToken, async (req, res) => {
             lastName: true,
           },
         },
+        payments: {
+          where: {
+            payment: {
+              eventId: parsedEventId,
+            },
+          },
+          select: {
+            paidAt: true,
+            paymentId: true,
+          },
+        },
       },
     });
 
-    const confirmedAthletes = athletesData.map((user) => ({
-      userId: user.id,
-      firstName: user.athlete.firstName,
-      lastName: user.athlete.lastName,
-      status: true,
-      hasPaid: [...paidUserIds][0],
-    }));
-
-    // -- Lógica para obter as métricas de analytics --
+    // 3. Busca todos os itens de confirmação do evento em uma única query
+    // Isso é mais eficiente do que buscar item por item no loop.
     const confirmationItems = await prisma.confirmationItem.findMany({
       where: {
         confirmationUser: {
@@ -846,19 +837,44 @@ router.get('/:eventId/analytics', authenticateToken, async (req, res) => {
       },
       include: {
         paymentItem: true,
+        confirmationUser: {
+          select: {
+            userId: true,
+          },
+        },
       },
     });
 
+    // 4. Cria a lista de atletas confirmados, incluindo os itens pagos de cada um
+    const confirmedAthletes = athletesData.map((user) => {
+      const hasPaid = user.payments.some((p) => p.paidAt !== null);
+
+      const paidItemsForUser = confirmationItems
+        .filter((item) => item.confirmationUser.userId === user.id)
+        .map((item) => ({
+          name: item.paymentItem.name,
+          quantity: item.quantity,
+        }));
+
+      return {
+        userId: user.id,
+        firstName: user.athlete.firstName,
+        lastName: user.athlete.lastName,
+        status: true,
+        hasPaid: hasPaid,
+        paidItems: paidItemsForUser,
+      };
+    });
+
+    // 5. Calcula as métricas totais do evento
+    const paidAthletesCount = confirmedAthletes.filter((a) => a.hasPaid).length;
     let totalValueReceived = 0;
-    let totalItemsPaid = 0;
-    const itemsPaidByItem = {}; // Novo objeto para armazenar a contagem por item
+    const itemsPaidByItem = {};
 
     confirmationItems.forEach((item) => {
       totalValueReceived += item.paymentItem.value * item.quantity;
-      totalItemsPaid += item.quantity;
 
-      // Lógica para agrupar e somar por item
-      const itemName = item.paymentItem.name; // Supondo que `paymentItem` tenha um campo `name`
+      const itemName = item.paymentItem.name;
       if (itemsPaidByItem[itemName]) {
         itemsPaidByItem[itemName] += item.quantity;
       } else {
@@ -866,11 +882,14 @@ router.get('/:eventId/analytics', authenticateToken, async (req, res) => {
       }
     });
 
+    const totalItemsPaid = Object.values(itemsPaidByItem).reduce((acc, curr) => acc + curr, 0);
+
+    // 6. Retorna a resposta completa
     res.status(200).json({
       confirmedAthletes,
       metrics: {
-        confirmedAthletesCount: confirmedUserIds.length,
-        paidAthletesCount: paidAthletesCount,
+        confirmedAthletesCount: confirmedAthletes.length,
+        paidAthletesCount,
         totalValueReceived,
         totalItemsPaid,
         itemsPaidByItem,

@@ -276,6 +276,27 @@ const AnalyticsEventCard = ({ event }) => {
                               {athlete.hasPaid ? 'Pago' : 'Pendente'}
                             </Typography>
                           </Box>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 1 }}>
+                            <Typography component="span" variant="caption" color="text.secondary">
+                              Itens Pagos:
+                            </Typography>
+                            {athlete.paidItems.length > 0 ? (
+                              athlete.paidItems.map((item, itemIndex) => (
+                                <Typography
+                                  key={itemIndex}
+                                  component="span"
+                                  variant="caption"
+                                  color="text.primary"
+                                >
+                                  - {item.name}: {item.quantity}
+                                </Typography>
+                              ))
+                            ) : (
+                              <Typography component="span" variant="caption" color="text.secondary">
+                                Nenhum item pago.
+                              </Typography>
+                            )}
+                          </Box>
                         </Typography>
                       }
                     />

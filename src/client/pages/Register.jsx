@@ -34,6 +34,7 @@ const Register = () => {
   };
 
   useEffect(() => {
+    setEmailError('Verificando e-mail...');
     const timeoutId = setTimeout(async () => {
       if (formData.email) {
         try {
@@ -52,10 +53,10 @@ const Register = () => {
   }, [formData.email]);
 
   useEffect(() => {
+    setPhoneServerError('Verificando telefone...');
     const timeoutId = setTimeout(async () => {
       const phoneToVerify = phoneNumber.replace(/\D/g, '');
 
-      // Altere a condição de 10 para 11
       if (phoneToVerify.length >= 11) {
         try {
           const result = await Auth.checkPhoneExists(phoneToVerify);
